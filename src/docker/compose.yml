@@ -1,25 +1,24 @@
-version: '3.8'
 services:
-  # webgraph-openapi-backend:
-  #   build:
-  #     context: ../backend/docker
-  #     dockerfile: Dockerfile
-  #   restart: always
-  #   ports:
-  #     - 5435:5432
-  #   environment:
-  #     POSTGRES_PASSWORD: postgres
-  #     POSTGRES_HOST_AUTH_METHOD: trust
-  #     TZ: "Europe/Rome"
-  #   volumes:
-  #     - /graphs:/usr/graphs
+  webgraph-openapi-backend:
+    build:
+      context: ../backend
+      dockerfile: docker/Dockerfile
+    restart: always
+    container_name: webgraph-openapi-backend
+    ports:
+      - 8000:8000
+    volumes:
+      - /graphs:/usr/graphs
+
+
+
   webgraph-openapi-frontend:
     build:
-      args: []
       context: ../frontend
       dockerfile: docker/Dockerfile
     restart: always
-    # depends_on:
-    #   - backend
+    container_name: webgraph-openapi-frontend
+    depends_on:
+      - webgraph-openapi-backend
     ports:
-        - 8801:80
+      - 8800:80
