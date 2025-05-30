@@ -10,6 +10,9 @@ services:
       - ROCKET_PORT=8000
     ports:
       - 8801:8000
+    volumes:
+      - /Users/mn/Developer/working-copies/uni/avgdist-rs/data/star:/usr/webgraphs/star
+      - /Volumes/Data/bitcoin:/usr/webgraphs/bitcoin
 
   webgraph-openapi-frontend:
     build:
