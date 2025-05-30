@@ -14,7 +14,7 @@ struct Neighborhood {
     neighborhood: Vec<usize>,
 }
 
-#[get("/webgraph-api/neighborhood/<graph>/<vertex>")]
+#[get("/neighborhood/<graph>/<vertex>")]
 fn neighborhood(graph: &str, vertex: usize) -> Json<Neighborhood> {
     Json(Neighborhood {
         vertex,
@@ -22,12 +22,12 @@ fn neighborhood(graph: &str, vertex: usize) -> Json<Neighborhood> {
     })
 }
 
-#[get("/webgraph-api/hello/<name>/<age>")]
+#[get("/hello/<name>/<age>")]
 fn hello(name: &str, age: u8) -> String {
     format!("Hello, {} year old named {}!", age, name)
 }
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![neighborhood,hello])
+    rocket::build().mount("/webgraph-api", routes![neighborhood,hello])
 }

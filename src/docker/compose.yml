@@ -5,12 +5,11 @@ services:
       dockerfile: docker/Dockerfile
     restart: always
     container_name: webgraph-openapi-backend
+    environment:
+      - ROCKET_ADDRESS="0.0.0.0"  # Listen on all interfaces
+      - ROCKET_PORT=8000
     ports:
-      - 8000:8000
-    volumes:
-      - /graphs:/usr/graphs
-
-
+      - 8801:8000
 
   webgraph-openapi-frontend:
     build:

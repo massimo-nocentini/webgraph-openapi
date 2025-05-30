@@ -1,8 +1,9 @@
 
-FROM nginx:stable-alpine
+FROM nginx:alpine
 
 
-COPY docker/server.nginx.conf /etc/nginx/conf.d/default.conf
+#COPY docker/server.nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker/server.nginx.conf /etc/nginx/nginx.conf
 COPY html /usr/share/nginx/html
 
 EXPOSE 80
