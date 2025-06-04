@@ -3,135 +3,94 @@
 
 <head>
 	<title>Dynamic Graph</title>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.32.0/cytoscape.min.js"
-		integrity="sha512-JUacxc3LBNCUyDO2C+80nYCLPIbfPpyuD7rCpVqEz6n2PCk1LSdHNldgBzaVELc6ft+jwomNa9L2W8Wo9Dt1pA=="
-		crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-	
+	<!-- <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>	 -->
+	<script type="text/javascript" src="vis-network.min.js"></script>
 	<link href="data:image/x-icon;base64,YourBase64StringHere" rel="icon" type="image/x-icon" />
-	<meta name="viewport" content="user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, minimal-ui">
-  
+	<meta name="viewport"
+		content="user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, minimal-ui">
+	<style>
+		#network {
+			width: 100%;
+			height: 1000px;
+			border: 1.618px solid lightgray;
+		}
+	</style>
 </head>
 
 <body>
 	<h2>Dynamic Graph</h2>
-	<div id="cy"></div>
-	<!-- <button onclick="addNode()">Add Node</button> -->
-	<!-- <button onclick="addEdge()">Add Edge</button> -->
+	<div id="network"></div>
+	<button onclick="addEdge()">Add Edge</button>
+	<button id="toggle_button" onclick="toggle()">Toggle</button>
 
 	<script>
+
 		// Create nodes and edges datasets
-		let topic = 'star'; // Replace with your topic
-		let graph_name = 'star'; // Replace with your graph name
-		let queue = [1];
+		let topic = 'pg'; // Replace with your topic
+		let graph_name = 'pg'; // Replace with your graph name
+		let queue = [759389];
 
+		let go = false;
 
-		var cy = cytoscape({
-			container: document.getElementById('cy'), // container to render in
+		const nodes = new vis.DataSet([]);
+		const edges = new vis.DataSet([]);
 
-			style: [ // the stylesheet for the graph
-				{
-					selector: 'node',
-					style: {
-						'background-color': '#666',
-						'label': 'data(id)'
-					}
-				},
+		function addNode(id, color = undefined) {
+			let n = { id: id, label: id.toString() };
+			if (color) {
+				n.color = { background: color };
+			}
+			nodes.add(n);
+		}
 
-				{
-					selector: 'edge',
-					style: {
-						'width': 3,
-						'line-color': '#ccc',
-						'target-arrow-color': '#ccc',
-						'target-arrow-shape': 'triangle',
-						'curve-style': 'bezier'
-					}
-				}
-			],
+		queue.forEach(node => { addNode(node, 'white'); });
 
-			
-		});
+		// Create a network
+		const container = document.getElementById('network');
+		const data = { nodes, edges };
+		const options = {};
+		const network = new vis.Network(container, data, options);
 
-		queue.forEach(node => {
-			cy.add({
-				group: 'nodes',
-				data: { id: node, label: node }
-			});
-		});
+		let sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+		function toggle() {
+			go = !go;
+			document.getElementById('toggle_button').innerText = go ? 'Pause' : 'Resume';
+		}
+
+		toggle(); // Initial toggle to set the state
 
 		async function addEdge() {
 
-			while (queue.length > 0) {
+			while (go && queue.length > 0) {
 
 				let each = queue.shift();
 				let response = await fetch(`/webgraph-api/neighborhood/${topic}/${graph_name}/${each}`)
 					.then(response => response.json())
 					.catch(error => console.error('Error fetching neighbors:', error));
 
-				response.neighborhood.forEach(neighbor => {
+				nodes.update([{ id: each, color: { background: 'lightgray' } }]);
 
-					if (!cy.nodes('[id = ' + neighbor + ']').length) {
-						console.log(`Adding node: ${neighbor}`);
-						cy.add({
-							group: 'nodes',
-							data: { id: neighbor, label: neighbor }
-						});
+				response.neighborhood.forEach(async neighbor => {
 
-						cy.add({
-							group: 'edges',
-							data: { source: each, target: neighbor }
-						});
+					if (!nodes.get(neighbor)) {
+						addNode(neighbor); // Add the neighbor node if it doesn't exist
 
 						queue.push(neighbor);
+
+					} else {
+						console.log(`Already seen node ${neighbor}`);
 					}
 
+					edges.add({ from: each, to: neighbor, arrows: 'to' });
+
+					await sleep(618); // Sleep for 100 milliseconds to avoid overwhelming the browser
+
 				});
-				let options = {
-					name: 'concentric',
-
-					fit: true, // whether to fit the viewport to the graph
-					padding: 30, // the padding on fit
-					startAngle: 3 / 2 * Math.PI, // where nodes start in radians
-					sweep: undefined, // how many radians should be between the first and last node (defaults to full circle)
-					clockwise: true, // whether the layout should go clockwise (true) or counterclockwise/anticlockwise (false)
-					equidistant: false, // whether levels have an equal radial distance betwen them, may cause bounding box overflow
-					minNodeSpacing: 10, // min spacing between outside of nodes (used for radius adjustment)
-					boundingBox: undefined, // constrain layout bounds; { x1, y1, x2, y2 } or { x1, y1, w, h }
-					avoidOverlap: true, // prevents node overlap, may overflow boundingBox if not enough space
-					nodeDimensionsIncludeLabels: false, // Excludes the label when calculating node bounding boxes for the layout algorithm
-					height: undefined, // height of layout area (overrides container height)
-					width: undefined, // width of layout area (overrides container width)
-					spacingFactor: undefined, // Applies a multiplicative factor (>0) to expand or compress the overall area that the nodes take up
-					concentric: function (node) { // returns numeric value for each node, placing higher nodes in levels towards the centre
-						return node.degree();
-					},
-					levelWidth: function (nodes) { // the variation of concentric values in each level
-						return nodes.maxDegree() / 4;
-					},
-					animate: false, // whether to transition the node positions
-					animationDuration: 500, // duration of animation in ms if enabled
-					animationEasing: undefined, // easing of animation if enabled
-					animateFilter: function (node, i) { return true; }, // a function that determines whether the node should be animated.  All nodes animated by default on animate enabled.  Non-animated nodes are positioned immediately when the layout starts
-					ready: undefined, // callback on layoutready
-					stop: undefined, // callback on layoutstop
-					transform: function (node, position) { return position; } // transform a given node position. Useful for changing flow direction in discrete layouts
-				};
-
-				cy.layout(options).run();
-
-				break;
-
 			}
-
 		}
 
-		 addEdge(); // Start adding 	edges
-		
-var container = document.getElementById("cy");
-    var content = container.innerHTML;
-    container.innerHTML= content; 
-
-
+		// addEdge(); // Initial call to start adding edges
 	</script>
 </body>
 
