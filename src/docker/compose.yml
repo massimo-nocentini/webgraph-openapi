@@ -15,6 +15,7 @@ services:
       - /Volumes/Data/bitcoin:/usr/webgraphs/bitcoin
       - /home/mn/Developer/working-copies/personal/development-snapshots.sh/working-copies/rust/avgdist-rs/data/star:/usr/webgraphs/star
       - /home/mn/Downloads/bitcoin-graphs/Bitcoin_Graphs/pg:/usr/webgraphs/pg
+      - /home/mn/Downloads/bitcoin-graphs/Bitcoin_Graphs/ag:/usr/webgraphs/ag
 
   webgraph-openapi-frontend:
     build:
