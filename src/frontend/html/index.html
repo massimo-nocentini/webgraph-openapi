@@ -45,6 +45,7 @@
 		let topic = 'ag'; // Replace with your topic
 		let graph_name = 'ag'; // Replace with your graph name
 		let queue = [759389];
+		let edges_queue = []; // This will hold edges to be added
 		// let queue = [0];
 
 		document.getElementById('topic').innerText = topic;
@@ -57,9 +58,10 @@
 
 		const nodes = new vis.DataSet([]);
 		const edges = new vis.DataSet([]);
+		// const seen = new Set();
 
 		function addNode(id, color = undefined) {
-			let n = { id: id, label: id.toString() };
+			let n = { id: id, label: id.toString(), value: 0 };
 			if (color) {
 				n.color = { background: color };
 			}
@@ -75,12 +77,12 @@
 		const options = {
 			nodes: {
 				shape: 'dot',
-				size: 10,
-				font: { size: 14, color: '#343a40' },
-				borderWidth: 2,
+				size: 1,
+				// font: { size: 14, color: '#343a40' },
+				// borderWidth: 2,
 			},
-			edges: { smooth: { type: "continuous" } },
-			physics: { stabilization: false },
+			edges: { smooth: { type: "dynamic" } },
+			physics: { stabilization: { iterations: 150 } },
 		};
 		const network = new vis.Network(container, data, options);
 
@@ -92,6 +94,23 @@
 		}
 
 		toggle(); // Initial toggle to set the state
+
+		setInterval(() => {
+			if (edges_queue.length > 0) {			
+
+				let e = edges_queue.shift();
+
+				// if (!nodes.get(e.from)) {
+				// 	addNode(e.from, 'lightgray'); // Add the source node if it doesn't exist
+				// }
+				// if (!nodes.get(e.to)) {
+				// 	addNode(e.to, 'lightgray'); // Add the target node if it doesn't exist
+				// }
+
+				edges.add(e); // Add edges from the queue
+				document.getElementById('graph_E').innerText = edges.length;
+			}
+		}, ((1 / 1.618) / 1.618));
 
 		async function addEdge() {
 
@@ -109,12 +128,14 @@
 					}
 
 					if (transposed) {
-						edges.add({ from: neighbor, to: each, arrows: 'to' });
+						// edges.add({ from: neighbor, to: each, arrows: 'to' });
+						edges_queue.push({ from: neighbor, to: each, arrows: 'to' });
 					} else {
-						edges.add({ from: each, to: neighbor, arrows: 'to' });
+						// edges.add({ from: each, to: neighbor, arrows: 'to' });
+						edges_queue.push({ from: each, to: neighbor, arrows: 'to' });
 					}
 
-					document.getElementById('graph_E').innerText = edges.length;
+					// document.getElementById('graph_E').innerText = edges.length;
 					await sleep(618); // Sleep for 100 milliseconds to avoid overwhelming the browser
 
 				}
@@ -122,7 +143,7 @@
 				await fetch(`/webgraph-api/neighborhood/${topic}/${graph_name}/${each}`)
 					.then(response => response.json())
 					.then(data => {
-						data.neighborhood.forEach(v => addNeighbor(v, false));
+						data.neighborhood.forEach(async v => await addNeighbor(v, false));
 						nodes.update([{ id: each, value: data.outdegree, color: { background: 'lightgray' } }]);
 					})
 					.catch(error => console.error('Error fetching neighbors:', error));
