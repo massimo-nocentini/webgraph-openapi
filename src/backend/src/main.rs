@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate rocket;
 
-use rocket::serde::{json::Json, Serialize};
+use rocket::serde::{Serialize, json::Json};
 use webgraph::{
     prelude::BvGraph,
     traits::{RandomAccessGraph, RandomAccessLabeling, SequentialLabeling},
@@ -15,7 +15,7 @@ struct Neighborhood {
     num_arcs: u64,
     vertex_id: usize,
     outdegree: usize,
-    neighborhood: Vec<usize>,
+    neighborhood: Vec<(usize, usize)>,
 }
 
 #[get("/neighborhood/<topic>/<graph_name>/<vertex_id>")]
@@ -28,7 +28,10 @@ fn neighborhood(topic: &str, graph_name: &str, vertex_id: usize) -> Json<Neighbo
         num_nodes: graph.num_nodes(),
         num_arcs: graph.num_arcs(),
         vertex_id,
-        neighborhood: graph.successors(vertex_id).collect(),
+        neighborhood: graph
+            .successors(vertex_id)
+            .map(|each| (each, graph.outdegree(each)))
+            .collect(),
         outdegree: graph.outdegree(vertex_id),
     })
 }

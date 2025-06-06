@@ -9,64 +9,66 @@
 	<link rel="stylesheet" href="https://www.w3schools.com/w3css/5/w3.css">
 	<!-- <meta name="viewport"
 		content="user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, minimal-ui"> -->
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<style>
+	<!-- <meta name="viewport" content="width=device-width, initial-scale=1"> -->
+	<!-- <style>
 		#network {
 			width: 100%;
 			height: 1000px;
 			border: 1.618px solid lightgray;
 		}
-	</style>
+	</style> -->
 </head>
 
 <body>
 	<div class="w3-container">
-		<h1>Webgraph interface</h1>
+		<h1 class="w3-serif">Webgraph interface</h1>
 
 		<div class="w3-container ">
-			<p>Topic: <span id="topic">...</span></p>
-			<p>Graph name: <span id="graph_name">...</span></p>
-			<p>|V|: <span id="graph_V">...</span></p>
-			<p>|E|: <span id="graph_E">...</span></p>
-			<p>Queue length: <span id="queue_length">1</span></p>
+			<ul class="w3-ul w3-border w3-round">
+				<li>Graph name: <span id="graph_name"></span></li>
+				<li>|V|: <span id="graph_V" class="w3-monospace">0</span></li>
+				<li>|E|: <span id="graph_E" class="w3-monospace">0</span></li>
+				<li>Queue length: <span id="queue_length" class="w3-monospace">0</span></li>
+			</ul>
 		</div>
 	</div>
 
-	<div id="network" class="w3-container w3-card w3-border w3-round w3-margin"></div>
+	<div class="w3-container w3-margin">
+		<div id="network" class="w3-card w3-border w3-round" style="height: 1000px;"></div>
 
-	<div class="w3-container w3-border w3-round">
-		<button onclick="addEdge()">Add Edge</button>
-		<button id="toggle_button" onclick="toggle()">Toggle</button>
+		<div class="w3-container w3-border w3-round w3-margin-top w3-padding">
+			<p>Controls:
+
+				<input id="explore_nodes" class="w3-check w3-margin-left" type="checkbox" checked="checked">
+				<label>Keep exploring nodes</label>
+
+				<input id="explore_edges" class="w3-check w3-margin-left" type="checkbox" checked="checked">
+				<label>Keep adding edges</label>
+			</p>
+		</div>
+
 	</div>
 
 	<script>
 
-		// Create nodes and edges datasets
-		let topic = 'ag'; // Replace with your topic
-		let graph_name = 'ag'; // Replace with your graph name
+
+		let topic = 'ag';
+		let graph_name = 'ag';
+
 		let queue = [759389];
 		let edges_queue = []; // This will hold edges to be added
-		// let queue = [0];
 
-		document.getElementById('topic').innerText = topic;
 		document.getElementById('graph_name').innerText = graph_name;
-		document.getElementById('graph_V').innerText = '...'; // Placeholder for |V|
-		document.getElementById('graph_E').innerText = '...'; // Placeholder for |E|
-		document.getElementById('queue_length').innerText = queue.length;
-
-		let go = false;
 
 		const nodes = new vis.DataSet([]);
 		const edges = new vis.DataSet([]);
-		// const seen = new Set();
+		const seen = new Set();
 
-		function addNode(id, color = undefined) {
-			let n = { id: id, label: id.toString(), value: 0 };
-			if (color) {
-				n.color = { background: color };
-			}
-			nodes.add(n);
+		function addNode(id, value = 1) {
+			let n = { id: id, label: id.toString(), value: value };
+			let nn = nodes.add(n);
 			document.getElementById('graph_V').innerText = nodes.length;
+			return nn;
 		}
 
 		queue.forEach(addNode);
@@ -82,80 +84,72 @@
 				// borderWidth: 2,
 			},
 			edges: { smooth: { type: "dynamic" } },
-			physics: { stabilization: { iterations: 150 } },
+			physics: { stabilization: { iterations: 10 } },
 		};
 		const network = new vis.Network(container, data, options);
 
 		let sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-		function toggle() {
-			go = !go;
-			document.getElementById('toggle_button').innerText = go ? 'Pause' : 'Resume';
-		}
-
-		toggle(); // Initial toggle to set the state
-
 		setInterval(() => {
-			if (edges_queue.length > 0) {			
+			if (document.getElementById('explore_edges').checked && edges_queue.length > 0) {
 
 				let e = edges_queue.shift();
 
-				// if (!nodes.get(e.from)) {
-				// 	addNode(e.from, 'lightgray'); // Add the source node if it doesn't exist
-				// }
-				// if (!nodes.get(e.to)) {
-				// 	addNode(e.to, 'lightgray'); // Add the target node if it doesn't exist
-				// }
-
-				edges.add(e); // Add edges from the queue
-				document.getElementById('graph_E').innerText = edges.length;
-			}
-		}, ((1 / 1.618) / 1.618));
-
-		async function addEdge() {
-
-			while (go && queue.length > 0) {
-
-				let each = queue.shift();
-				document.getElementById('queue_length').innerText = queue.length;
-
-				async function addNeighbor(neighbor, transposed) {
-
-					if (!nodes.get(neighbor)) {
-						addNode(neighbor); // Add the neighbor node if it doesn't exist
-
-						queue.push(neighbor);
-					}
-
-					if (transposed) {
-						// edges.add({ from: neighbor, to: each, arrows: 'to' });
-						edges_queue.push({ from: neighbor, to: each, arrows: 'to' });
-					} else {
-						// edges.add({ from: each, to: neighbor, arrows: 'to' });
-						edges_queue.push({ from: each, to: neighbor, arrows: 'to' });
-					}
-
-					// document.getElementById('graph_E').innerText = edges.length;
-					await sleep(618); // Sleep for 100 milliseconds to avoid overwhelming the browser
-
+				if (!nodes.get(e.from)) {
+					addNode(e.from, e.from_outdegree);
 				}
 
-				await fetch(`/webgraph-api/neighborhood/${topic}/${graph_name}/${each}`)
-					.then(response => response.json())
-					.then(data => {
-						data.neighborhood.forEach(async v => await addNeighbor(v, false));
-						nodes.update([{ id: each, value: data.outdegree, color: { background: 'lightgray' } }]);
-					})
-					.catch(error => console.error('Error fetching neighbors:', error));
+				if (!nodes.get(e.to)) {
+					addNode(e.to, e.to_outdegree);
+				}
 
-				// await fetch(`/webgraph-api/neighborhood/${topic}/${graph_name}-t/${each}`)
-				// 	.then(response => response.json())
-				// 	.then(data => data.neighborhood.forEach(v => addNeighbor(v, true)))
-				// 	.catch(error => console.error('Error fetching neighbors:', error));
+				edges.add(e);
 			}
-		}
 
-		// addEdge(); // Initial call to start adding edges
+			document.getElementById('graph_E').innerText = edges.length;
+		}, ((1 / 1.618) / 1.618));
+
+		setInterval(async () => {
+
+			if (document.getElementById('explore_nodes').checked && queue.length > 0) {
+
+				let each = queue.shift();
+
+				if (!seen.has(each)) {
+
+					seen.add(each);
+
+					await fetch(`/webgraph-api/neighborhood/${topic}/${graph_name}/${each}`)
+						.then(response => response.json())
+						.then(data => {
+							data.neighborhood.forEach(pair => {
+
+								let neighbor = pair[0];
+
+								if (!seen.has(neighbor)) {
+									queue.push(neighbor);
+								}
+
+								edges_queue.push({
+									from: each,
+									to: neighbor,
+									arrows: 'to',
+									from_outdegree: data.outdegree,
+									to_outdegree: pair[1]
+								});
+							});
+
+							nodes.update([{ id: each, color: { background: 'lightgray' } }]);
+						})
+						.catch(error => console.error('Error fetching neighbors:', error));
+				}
+
+				document.getElementById('queue_length').innerText = queue.length;
+			}
+
+		}, ((1 / 1.618) / 1));
+
+
 	</script>
 </body>
 
