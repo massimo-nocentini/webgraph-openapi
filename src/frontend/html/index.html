@@ -108,30 +108,6 @@
 
 		const network = new vis.Network(container, data, options);
 
-		function addEdge(e) {
-
-			let updates = [];
-
-			if (!nodes.get(e.from)) {
-				addNode(e.from, e.from_outdegree);
-			}
-
-			updates.push({ id: e.from, value: e.from_outdegree, color: { background: 'lightgray' } });
-
-			if (!nodes.get(e.to)) {
-				addNode(e.to, e.to_outdegree);
-			}
-
-			if (e.to_outdegree === 0) {
-				seen.add(e.to);
-				updates.push({ id: e.to, value: e.to_outdegree, color: { background: 'lightgray' } });
-			}
-
-			nodes.update(updates);
-
-			edges.add(e);
-		}
-
 		network.on("doubleClick", function (params) {
 			params.nodes.forEach(async each => {
 				if (!seen.has(each)) {
@@ -174,11 +150,32 @@
 
 		setInterval(() => {
 			if (document.getElementById('explore_edges').checked && edges_queue.length > 0) {
-				let e = edges_queue.pop();
-				addEdge(e);
-			}
 
-			document.getElementById('graph_E').innerText = edges.length;
+				let e = edges_queue.pop();
+
+				let updates = [];
+
+				if (!nodes.get(e.from)) {
+					addNode(e.from, e.from_outdegree);
+				}
+
+				updates.push({ id: e.from, value: e.from_outdegree, color: { background: 'lightgray' } });
+
+				if (!nodes.get(e.to)) {
+					addNode(e.to, e.to_outdegree);
+				}
+
+				if (e.to_outdegree === 0) {
+					seen.add(e.to);
+					updates.push({ id: e.to, value: e.to_outdegree, color: { background: 'lightgray' } });
+				}
+
+				nodes.update(updates);
+
+				edges.add(e);
+
+				document.getElementById('graph_E').innerText = edges.length;
+			}
 		}, ((1 / 1.618) / 1.618));
 
 		setInterval(async () => {
@@ -199,20 +196,7 @@
 
 					let edges_of_each = await fetchEdges(each);
 
-					// edges_of_each.forEach(e => {
-
-					// 	let neighbor = e.to;
-
-					// 	if (!seen.has(neighbor)) {
-					// 		queue.push(neighbor);
-					// 	}
-
-					// 	edges_queue.push(e);
-					// });
-
 				}
-
-
 			}
 
 		}, ((1 / 1.618) / 1));
