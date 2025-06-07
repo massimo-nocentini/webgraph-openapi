@@ -30,31 +30,46 @@
 
 	<article class="w3-container w3-border w3-round w3-padding w3-margin">
 
-		<b>Exploring</b>
+		<p>
+			<b>Exploring</b>
 
-		<input id="explore_nodes" class="w3-check w3-margin-left" type="checkbox">
-		<label>Keep exploring nodes</label>
+			<input id="explore_nodes" class="w3-check w3-margin-left" type="checkbox">
+			<label>Keep exploring nodes</label>
 
-		<input id="explore_edges" class="w3-check w3-margin-left" type="checkbox" checked="checked">
-		<label>Keep adding edges</label>
+			<input id="explore_edges" class="w3-check w3-margin-left" type="checkbox" checked="checked">
+			<label>Keep adding edges</label>
+		</p>
 
-		<hr>
+		<p>
+			<b>Visit strategy</b>
 
-		<b>Visiting</b>
+			<input class="w3-radio w3-margin-left" id="radio_bfs" type="radio" name="visit_algorithm" value="bfs"
+				checked="checked">
+			<label>BFS</label>
 
-		<input class="w3-radio w3-margin-left" id="radio_bfs" type="radio" name="visit_algorithm" value="bfs"
-			checked="checked">
-		<label>BFS</label>
+			<input class="w3-radio w3-margin-left" id="radio_dfs" type="radio" name="visit_algorithm" value="dfs">
+			<label>DFS</label>
 
-		<input class="w3-radio w3-margin-left" id="radio_dfs" type="radio" name="visit_algorithm" value="dfs">
-		<label>DFS</label>
+		</p>
+
+		<p>
+			<b>Layout</b>
+
+			<input class="w3-check w3-margin-left" id="radio_layout_hierarchical" type="checkbox"
+				name="layout_algorithm" value="hierarchical" checked="checked" onclick="toggleLayout()">
+			<label>Hierarchical</label>
+
+			<input id="enable_physics" class="w3-check w3-margin-left" type="checkbox" checked="checked"
+				onclick="togglePhysics()">
+			<label>Physics stabilization</label>
+		</p>
+
+		</p>
 	</article>
 
 	<h2>Viz</h2>
 
 	<div id="network" class="w3-card w3-border w3-round w3-margin" style="height: 1000px;"></div>
-
-
 
 	<script>
 
@@ -88,25 +103,46 @@
 				shape: 'dot',
 				size: 1,
 			},
-			edges: { smooth: true, arrows: { to: true } },
-			// physics: { stabilization: { iterations: 10 } },
-			layout: {
-				hierarchical: {
-					enabled: false,
-					levelSeparation: 150,
-					nodeSpacing: 100,
-					treeSpacing: 200,
-					blockShifting: true,
-					edgeMinimization: true,
-					parentCentralization: true,
-					direction: 'LR', // UD, DU, LR, RL
-					sortMethod: 'directed',
-					shakeTowards: 'roots',
+			edges: {
+				smooth: {
+					"type": "dynamic",
+					"forceDirection": "none"
 				},
+				arrows: { to: true }
 			},
 		};
-
 		const network = new vis.Network(container, data, options);
+
+		function toggleLayout() {
+			let enable = document.getElementById('radio_layout_hierarchical').checked;
+			network.setOptions({
+				layout: {
+					hierarchical: {
+						enabled: enable,
+						levelSeparation: 150,
+						nodeSpacing: 100,
+						treeSpacing: 200,
+						blockShifting: true,
+						edgeMinimization: true,
+						parentCentralization: true,
+						direction: 'LR', // UD, DU, LR, RL
+						sortMethod: 'directed',
+						shakeTowards: 'roots',
+					},
+				}
+			});
+
+			network.redraw();
+		}
+
+		function togglePhysics() {
+			let enable = document.getElementById('enable_physics').checked;
+			network.setOptions({ physics: { enabled: enable } });
+			
+		}
+
+		togglePhysics();
+		toggleLayout();
 
 		network.on("doubleClick", function (params) {
 			params.nodes.forEach(async each => {
