@@ -139,7 +139,9 @@
 								});
 							});
 
-							nodes.update([{ id: each, color: { background: 'lightgray' } }]);
+							if (nodes.get(each)) {
+								nodes.update([{ id: each, color: { background: 'lightgray' } }]);
+							}
 						})
 						.catch(error => console.error('Error fetching neighbors:', error));
 				}

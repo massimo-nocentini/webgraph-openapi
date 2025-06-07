@@ -27,3 +27,6 @@ services:
       - webgraph-openapi-backend
     ports:
       - 8800:80
+    environment:
+      - TOPIC_NAME="pg"
+      - GRAPH_NAME="pg"
