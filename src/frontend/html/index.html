@@ -6,48 +6,55 @@
 	<!-- <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>	 -->
 	<script type="text/javascript" src="vis-network.min.js"></script>
 	<link href="data:image/x-icon;base64,YourBase64StringHere" rel="icon" type="image/x-icon" />
-	<link rel="stylesheet" href="https://www.w3schools.com/w3css/5/w3.css">
-	<!-- <meta name="viewport"
-		content="user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, minimal-ui"> -->
-	<!-- <meta name="viewport" content="width=device-width, initial-scale=1"> -->
-	<!-- <style>
-		#network {
-			width: 100%;
-			height: 1000px;
-			border: 1.618px solid lightgray;
-		}
-	</style> -->
+	<link rel="stylesheet" href="https://www.w3schools.com/w3css/5/w3.css">	
+	<meta name="viewport" content="width=device-width, initial-scale=1">	
 </head>
 
-<body>
-	<div class="w3-container">
-		<h1 class="w3-serif">Webgraph interface</h1>
+<body class="w3-content" style="min-width: 90.982%;">
 
-		<div class="w3-container ">
-			<ul class="w3-ul w3-border w3-round">
-				<li>Graph name: <span id="graph_name"></span></li>
-				<li>|V|: <span id="graph_V" class="w3-monospace">0</span></li>
-				<li>|E|: <span id="graph_E" class="w3-monospace">0</span></li>
-				<li>Queue length: <span id="queue_length" class="w3-monospace">0</span></li>
-			</ul>
-		</div>
-	</div>
+
+	<h1 class="w3-center">Webgraph interface</h1>
+
+	<h2>Info</h2>
 
 	<div class="w3-container w3-margin">
-		<div id="network" class="w3-card w3-border w3-round" style="height: 1000px;"></div>
-
-		<div class="w3-container w3-border w3-round w3-margin-top w3-padding">
-			<p>Controls:
-
-				<input id="explore_nodes" class="w3-check w3-margin-left" type="checkbox" checked="checked">
-				<label>Keep exploring nodes</label>
-
-				<input id="explore_edges" class="w3-check w3-margin-left" type="checkbox" checked="checked">
-				<label>Keep adding edges</label>
-			</p>
-		</div>
-
+		<ul class="w3-ul w3-border w3-round">
+			<li>Graph name: <span id="graph_name"></span></li>
+			<li>|V|: <span id="graph_V" class="w3-monospace">0</span></li>
+			<li>|E|: <span id="graph_E" class="w3-monospace">0</span></li>
+			<li>Queue length: <span id="queue_length" class="w3-monospace">0</span></li>
+		</ul>
 	</div>
+
+	<h2>Controls</h2>
+
+	<article class="w3-container w3-border w3-round w3-padding w3-margin">
+
+		<b>Exploring</b>
+
+		<input id="explore_nodes" class="w3-check w3-margin-left" type="checkbox">
+		<label>Keep exploring nodes</label>
+
+		<input id="explore_edges" class="w3-check w3-margin-left" type="checkbox" checked="checked">
+		<label>Keep adding edges</label>
+
+		<hr>
+
+		<b>Visiting</b>
+
+		<input class="w3-radio w3-margin-left" id="radio_bfs" type="radio" name="visit_algorithm" value="bfs"
+			checked="checked">
+		<label>BFS</label>
+
+		<input class="w3-radio w3-margin-left" id="radio_dfs" type="radio" name="visit_algorithm" value="dfs">
+		<label>DFS</label>
+	</article>
+
+	<h2>Viz</h2>
+
+	<div id="network" class="w3-card w3-border w3-round w3-margin" style="height: 1000px;"></div>
+
+
 
 	<script>
 
@@ -80,11 +87,22 @@
 			nodes: {
 				shape: 'dot',
 				size: 1,
-				// font: { size: 14, color: '#343a40' },
-				// borderWidth: 2,
 			},
-			edges: { smooth: { type: "dynamic" } },
-			physics: { stabilization: { iterations: 10 } },
+			edges: { smooth: true, arrows: { to: true } },
+			// physics: { stabilization: { iterations: 10 } },
+			layout: {
+				hierarchical: {
+					enabled: true,
+					levelSeparation: 150,
+					nodeSpacing: 100,
+					treeSpacing: 200,
+					blockShifting: true,
+					edgeMinimization: true,
+					parentCentralization: true,
+					direction: 'UD', // UD, DU, LR, RL
+					sortMethod: 'directed',
+				},
+			},
 		};
 		const network = new vis.Network(container, data, options);
 
@@ -98,6 +116,7 @@
 				if (!nodes.get(e.from)) {
 					addNode(e.from, e.from_outdegree);
 				}
+				nodes.update([{ id: e.from, value: e.from_outdegree, color: { background: 'lightgray' } }]);
 
 				if (!nodes.get(e.to)) {
 					addNode(e.to, e.to_outdegree);
@@ -113,7 +132,13 @@
 
 			if (document.getElementById('explore_nodes').checked && queue.length > 0) {
 
-				let each = queue.shift();
+				let each = undefined;
+
+				if (document.getElementById('radio_bfs').checked) {
+					each = queue.shift();
+				} else {
+					each = queue.pop();
+				}
 
 				if (!seen.has(each)) {
 
@@ -139,9 +164,6 @@
 								});
 							});
 
-							if (nodes.get(each)) {
-								nodes.update([{ id: each, color: { background: 'lightgray' } }]);
-							}
 						})
 						.catch(error => console.error('Error fetching neighbors:', error));
 				}

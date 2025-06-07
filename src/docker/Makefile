@@ -1,5 +1,5 @@
 
-run:
+up:
 	COMPOSE_BAKE=true docker compose up
 
 build:
@@ -7,3 +7,5 @@ build:
 
 down:
 	COMPOSE_BAKE=true docker compose down
+
+refresh: build up
