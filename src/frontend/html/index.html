@@ -6,8 +6,8 @@
 	<!-- <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>	 -->
 	<script type="text/javascript" src="vis-network.min.js"></script>
 	<link href="data:image/x-icon;base64,YourBase64StringHere" rel="icon" type="image/x-icon" />
-	<link rel="stylesheet" href="https://www.w3schools.com/w3css/5/w3.css">	
-	<meta name="viewport" content="width=device-width, initial-scale=1">	
+	<link rel="stylesheet" href="https://www.w3schools.com/w3css/5/w3.css">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 
 <body class="w3-content" style="min-width: 90.982%;">
@@ -71,8 +71,8 @@
 		const edges = new vis.DataSet([]);
 		const seen = new Set();
 
-		function addNode(id, value = 1) {
-			let n = { id: id, label: id.toString(), value: value };
+		function addNode(id, value = 0) {
+			let n = { id: id, label: id.toString(), value: 1 + value };
 			let nn = nodes.add(n);
 			document.getElementById('graph_V').innerText = nodes.length;
 			return nn;
@@ -92,37 +92,90 @@
 			// physics: { stabilization: { iterations: 10 } },
 			layout: {
 				hierarchical: {
-					enabled: true,
+					enabled: false,
 					levelSeparation: 150,
 					nodeSpacing: 100,
 					treeSpacing: 200,
 					blockShifting: true,
 					edgeMinimization: true,
 					parentCentralization: true,
-					direction: 'UD', // UD, DU, LR, RL
+					direction: 'LR', // UD, DU, LR, RL
 					sortMethod: 'directed',
+					shakeTowards: 'roots',
 				},
 			},
 		};
+
 		const network = new vis.Network(container, data, options);
+
+		function addEdge(e) {
+
+			let updates = [];
+
+			if (!nodes.get(e.from)) {
+				addNode(e.from, e.from_outdegree);
+			}
+
+			updates.push({ id: e.from, value: e.from_outdegree, color: { background: 'lightgray' } });
+
+			if (!nodes.get(e.to)) {
+				addNode(e.to, e.to_outdegree);
+			}
+
+			if (e.to_outdegree === 0) {
+				seen.add(e.to);
+				updates.push({ id: e.to, value: e.to_outdegree, color: { background: 'lightgray' } });
+			}
+
+			nodes.update(updates);
+
+			edges.add(e);
+		}
+
+		network.on("doubleClick", function (params) {
+			params.nodes.forEach(async each => {
+				if (!seen.has(each)) {
+					seen.add(each);
+					let edges_of_each = await fetchEdges(each);
+				}
+			});
+		});
+
+		function pushNode(n) {
+			if (!seen.has(n)) {
+				queue.push(n);
+			}
+
+			document.getElementById('queue_length').innerText = queue.length;
+		}
+
+		async function fetchEdges(each) {
+			return fetch(`/webgraph-api/neighborhood/${topic}/${graph_name}/${each}`)
+				.then(response => response.json())
+				.then(data => data.neighborhood.map(pair => {
+					let e = {
+						from: each,
+						to: pair[0],
+						from_outdegree: data.outdegree,
+						to_outdegree: pair[1]
+					};
+
+					let neighbor = e.to;
+
+					pushNode(neighbor);
+
+					edges_queue.push(e);
+
+					return e;
+				}));
+		}
 
 		let sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 		setInterval(() => {
 			if (document.getElementById('explore_edges').checked && edges_queue.length > 0) {
-
-				let e = edges_queue.shift();
-
-				if (!nodes.get(e.from)) {
-					addNode(e.from, e.from_outdegree);
-				}
-				nodes.update([{ id: e.from, value: e.from_outdegree, color: { background: 'lightgray' } }]);
-
-				if (!nodes.get(e.to)) {
-					addNode(e.to, e.to_outdegree);
-				}
-
-				edges.add(e);
+				let e = edges_queue.pop();
+				addEdge(e);
 			}
 
 			document.getElementById('graph_E').innerText = edges.length;
@@ -144,31 +197,22 @@
 
 					seen.add(each);
 
-					await fetch(`/webgraph-api/neighborhood/${topic}/${graph_name}/${each}`)
-						.then(response => response.json())
-						.then(data => {
-							data.neighborhood.forEach(pair => {
+					let edges_of_each = await fetchEdges(each);
 
-								let neighbor = pair[0];
+					// edges_of_each.forEach(e => {
 
-								if (!seen.has(neighbor)) {
-									queue.push(neighbor);
-								}
+					// 	let neighbor = e.to;
 
-								edges_queue.push({
-									from: each,
-									to: neighbor,
-									arrows: 'to',
-									from_outdegree: data.outdegree,
-									to_outdegree: pair[1]
-								});
-							});
+					// 	if (!seen.has(neighbor)) {
+					// 		queue.push(neighbor);
+					// 	}
 
-						})
-						.catch(error => console.error('Error fetching neighbors:', error));
+					// 	edges_queue.push(e);
+					// });
+
 				}
 
-				document.getElementById('queue_length').innerText = queue.length;
+
 			}
 
 		}, ((1 / 1.618) / 1));
