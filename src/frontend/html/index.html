@@ -17,14 +17,14 @@
 
 	<h2>Info</h2>
 
-	<div class="w3-container w3-margin">
+	<article class="w3-container w3-margin">
 		<ul class="w3-ul w3-border w3-round">
 			<li>Graph name: <span id="graph_name"></span></li>
 			<li>|V|: <span id="graph_V" class="w3-monospace">0</span></li>
 			<li>|E|: <span id="graph_E" class="w3-monospace">0</span></li>
 			<li>Queue length: <span id="queue_length" class="w3-monospace">0</span></li>
 		</ul>
-	</div>
+	</article>
 
 	<h2>Controls</h2>
 
@@ -64,7 +64,6 @@
 			<label>Physics stabilization</label>
 		</p>
 
-		</p>
 	</article>
 
 	<h2>Viz</h2>
@@ -87,7 +86,7 @@
 		const seen = new Set();
 
 		function addNode(id, value = 0) {
-			let n = { id: id, label: id.toString(), value: 1 + value };
+			let n = { id: id, title: `Id: ${id.toString()}\nOutdegree: ${value}`, value: 1 + value };
 			let nn = nodes.add(n);
 			document.getElementById('graph_V').innerText = nodes.length;
 			return nn;
