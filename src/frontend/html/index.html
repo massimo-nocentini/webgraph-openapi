@@ -22,7 +22,6 @@
 			<li>Graph name: <span id="graph_name"></span></li>
 			<li>|V|: <span id="graph_V" class="w3-monospace">0</span></li>
 			<li>|E|: <span id="graph_E" class="w3-monospace">0</span></li>
-			<li>Queue length: <span id="queue_length" class="w3-monospace">0</span></li>
 		</ul>
 	</article>
 
@@ -68,31 +67,50 @@
 
 	<h2>Viz</h2>
 
-	<div id="network" class="w3-card w3-border w3-round w3-margin" style="height: 1000px;"></div>
+	<div class="w3-container w3-margin">
+
+		<article class="w3-container w3-margin">
+			<ul class="w3-ul w3-border w3-round">
+				<li>|V|: <span id="queue_V" class="w3-monospace">0</span></li>
+				<li>|E|: <span id="queue_E" class="w3-monospace">0</span></li>
+				<li>Nodes queue length: <span id="queue_length" class="w3-monospace">0</span></li>
+				<li>Edges queue length: <span id="edges_queue_length" class="w3-monospace">0</span></li>
+			</ul>
+		</article>
+
+		<div id="network" class="w3-card w3-border w3-round w3-margin" style="height: 1000px;"></div>
+	</div>
 
 	<script>
 
 
-		let topic = 'ag';
-		let graph_name = 'ag';
+		let topic = 'erdos-renyi';
+		let graph_name = '2k-0001p';
 
-		let queue = [759389];
+		// let queue = [759389];
+		let queue = [0];
 		let edges_queue = []; // This will hold edges to be added
 
-		document.getElementById('graph_name').innerText = graph_name;
+		fetch(`/webgraph-api/summary/${topic}/${graph_name}`)
+			.then(response => response.json()).then(summary => {
+				document.getElementById('graph_name').innerText = summary.graph_name;
+				document.getElementById('graph_V').innerText = summary.num_nodes;
+				document.getElementById('graph_E').innerText = summary.num_arcs;
+			});
+
 
 		const nodes = new vis.DataSet([]);
 		const edges = new vis.DataSet([]);
 		const seen = new Set();
 
-		function addNode(id, value = 0) {
-			let n = { id: id, title: `Id: ${id.toString()}\nOutdegree: ${value}`, value: 1 + value };
+		function addNode(id, outdegree = 0, indegree = 0) {
+			let n = { id: id, title: `Id: ${id.toString()}\nOutdegree: ${outdegree}\nIndegree: ${indegree}`, value: 1 + indegree };
 			let nn = nodes.add(n);
-			document.getElementById('graph_V').innerText = nodes.length;
+			document.getElementById('queue_V').innerText = nodes.length;
 			return nn;
 		}
 
-		queue.forEach(addNode);
+		// queue.forEach(addNode);
 
 		// Create a network
 		const container = document.getElementById('network');
@@ -137,7 +155,7 @@
 		function togglePhysics() {
 			let enable = document.getElementById('enable_physics').checked;
 			network.setOptions({ physics: { enabled: enable } });
-			
+
 		}
 
 		togglePhysics();
@@ -163,19 +181,21 @@
 		async function fetchEdges(each) {
 			return fetch(`/webgraph-api/neighborhood/${topic}/${graph_name}/${each}`)
 				.then(response => response.json())
-				.then(data => data.neighborhood.map(pair => {
+				.then(data => data.outborhood.map(triple => {
 					let e = {
-						from: each,
-						to: pair[0],
-						from_outdegree: data.outdegree,
-						to_outdegree: pair[1]
+						from: data.vertex,
+						from_outdegree: data.outborhood.length,
+						from_indegree: data.inborhood.length,
+						to: triple[0],
+						to_outdegree: triple[1],
+						to_indegree: triple[2]
 					};
 
-					let neighbor = e.to;
-
-					pushNode(neighbor);
+					pushNode(e.to);
 
 					edges_queue.push(e);
+					
+					document.getElementById('edges_queue_length').innerText = edges_queue.length;
 
 					return e;
 				}));
@@ -187,17 +207,18 @@
 			if (document.getElementById('explore_edges').checked && edges_queue.length > 0) {
 
 				let e = edges_queue.pop();
+				document.getElementById('edges_queue_length').innerText = edges_queue.length;
 
 				let updates = [];
 
 				if (!nodes.get(e.from)) {
-					addNode(e.from, e.from_outdegree);
+					addNode(e.from, e.from_outdegree, e.from_indegree);
 				}
 
 				updates.push({ id: e.from, value: e.from_outdegree, color: { background: 'lightgray' } });
 
 				if (!nodes.get(e.to)) {
-					addNode(e.to, e.to_outdegree);
+					addNode(e.to, e.to_outdegree, e.to_indegree);
 				}
 
 				if (e.to_outdegree === 0) {
@@ -209,7 +230,7 @@
 
 				edges.add(e);
 
-				document.getElementById('graph_E').innerText = edges.length;
+				document.getElementById('queue_E').innerText = edges.length;
 			}
 		}, ((1 / 1.618) / 1.618));
 
