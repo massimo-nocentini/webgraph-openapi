@@ -37,6 +37,9 @@
 
 			<input id="explore_edges" class="w3-check w3-margin-left" type="checkbox" checked="checked">
 			<label>Keep adding edges</label>
+
+			<input id="explore_incoming" class="w3-check w3-margin-left" type="checkbox">
+			<label>Backward</label>
 		</p>
 
 		<p>
@@ -55,7 +58,7 @@
 			<b>Layout</b>
 
 			<input class="w3-check w3-margin-left" id="radio_layout_hierarchical" type="checkbox"
-				name="layout_algorithm" value="hierarchical" checked="checked" onclick="toggleLayout()">
+				name="layout_algorithm" value="hierarchical" onclick="toggleLayout()">
 			<label>Hierarchical</label>
 
 			<input id="enable_physics" class="w3-check w3-margin-left" type="checkbox" checked="checked"
@@ -84,11 +87,14 @@
 	<script>
 
 
-		let topic = 'erdos-renyi';
-		let graph_name = '2k-0001p';
+		// let topic = 'erdos-renyi';
+		// let graph_name = '2k-0001p';
 
-		// let queue = [759389];
-		let queue = [0];
+		let topic = 'pg';
+		let graph_name = 'pg';
+
+		let queue = [759389];
+		// let queue = [0];
 		let edges_queue = []; // This will hold edges to be added
 
 		fetch(`/webgraph-api/summary/${topic}/${graph_name}`)
@@ -103,14 +109,26 @@
 		const edges = new vis.DataSet([]);
 		const seen = new Set();
 
-		function addNode(id, outdegree = 0, indegree = 0) {
-			let n = { id: id, title: `Id: ${id.toString()}\nOutdegree: ${outdegree}\nIndegree: ${indegree}`, value: 1 + indegree };
+		function addNode(id, outdegree = 0, indegree = 0, parent = undefined) {
+
+			let n = {
+				id: id,
+				title: `Id: ${id.toString()}\nOutdegree: ${outdegree}\nIndegree: ${indegree}`,
+				value: 1 + indegree
+			};
+
+			if (parent !== undefined && nodes.get(parent)) {
+				let { x, y } = network.getPosition(parent);
+				n.x = x + (Math.random() * 16.18); // Randomize position a bit
+				n.y = y + (Math.random() * 16.18); // Randomize position a bit
+			}
+
 			let nn = nodes.add(n);
+
 			document.getElementById('queue_V').innerText = nodes.length;
+
 			return nn;
 		}
-
-		// queue.forEach(addNode);
 
 		// Create a network
 		const container = document.getElementById('network');
@@ -127,6 +145,9 @@
 				},
 				arrows: { to: true }
 			},
+			physics: {
+				"minVelocity": 0.75 * 1.618,
+			}
 		};
 		const network = new vis.Network(container, data, options);
 
@@ -146,6 +167,7 @@
 						sortMethod: 'directed',
 						shakeTowards: 'roots',
 					},
+					randomSeed: 42 // For reproducibility					
 				}
 			});
 
@@ -163,10 +185,9 @@
 
 		network.on("doubleClick", function (params) {
 			params.nodes.forEach(async each => {
-				if (!seen.has(each)) {
-					seen.add(each);
-					let edges_of_each = await fetchEdges(each);
-				}
+
+				let edges_of_each = await fetchEdges(each);
+
 			});
 		});
 
@@ -181,27 +202,58 @@
 		async function fetchEdges(each) {
 			return fetch(`/webgraph-api/neighborhood/${topic}/${graph_name}/${each}`)
 				.then(response => response.json())
-				.then(data => data.outborhood.map(triple => {
-					let e = {
-						from: data.vertex,
-						from_outdegree: data.outborhood.length,
-						from_indegree: data.inborhood.length,
-						to: triple[0],
-						to_outdegree: triple[1],
-						to_indegree: triple[2]
-					};
+				.then(data => {
 
-					pushNode(e.to);
+					if (document.getElementById('explore_incoming').checked) {
+						return data.inborhood.map(triple => {
+							let e = {
+								parent: each,
+								from: triple[0],
+								from_outdegree: triple[1],
+								from_indegree: triple[2],
+								to: data.vertex,
+								to_outdegree: data.outborhood.length,
+								to_indegree: data.inborhood.length,
+							};
 
-					edges_queue.push(e);
-					
-					document.getElementById('edges_queue_length').innerText = edges_queue.length;
+							e.id = `${e.from}-${e.to}`;
 
-					return e;
-				}));
+							pushNode(e.from);
+
+							edges_queue.push(e);
+
+							document.getElementById('edges_queue_length').innerText = edges_queue.length;
+
+							return e;
+						});
+					}
+					else {
+						return data.outborhood.map(triple => {
+							let e = {
+								parent: each,
+								from: data.vertex,
+								from_outdegree: data.outborhood.length,
+								from_indegree: data.inborhood.length,
+								to: triple[0],
+								to_outdegree: triple[1],
+								to_indegree: triple[2]
+							};
+
+							e.id = `${e.from}-${e.to}`;
+
+							pushNode(e.to);
+
+							edges_queue.push(e);
+
+							document.getElementById('edges_queue_length').innerText = edges_queue.length;
+
+							return e;
+						});
+					}
+				});
 		}
 
-		let sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+		// let sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 		setInterval(() => {
 			if (document.getElementById('explore_edges').checked && edges_queue.length > 0) {
@@ -209,21 +261,25 @@
 				let e = edges_queue.pop();
 				document.getElementById('edges_queue_length').innerText = edges_queue.length;
 
+				if (edges.get(`${e.from}-${e.to}`)) {
+					return; // Edge already exists
+				}
+
 				let updates = [];
 
 				if (!nodes.get(e.from)) {
-					addNode(e.from, e.from_outdegree, e.from_indegree);
+					addNode(e.from, e.from_outdegree, e.from_indegree, e.parent);
 				}
 
-				updates.push({ id: e.from, value: e.from_outdegree, color: { background: 'lightgray' } });
+				updates.push({ id: e.from, value: e.from_indegree, color: { background: 'lightgray' } });
 
 				if (!nodes.get(e.to)) {
-					addNode(e.to, e.to_outdegree, e.to_indegree);
+					addNode(e.to, e.to_outdegree, e.to_indegree, e.from);
 				}
 
 				if (e.to_outdegree === 0) {
 					seen.add(e.to);
-					updates.push({ id: e.to, value: e.to_outdegree, color: { background: 'lightgray' } });
+					updates.push({ id: e.to, value: e.to_indegree, color: { background: 'lightgray' } });
 				}
 
 				nodes.update(updates);
