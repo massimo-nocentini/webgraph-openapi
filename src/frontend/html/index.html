@@ -38,8 +38,11 @@
 			<input id="explore_edges" class="w3-check w3-margin-left" type="checkbox" checked="checked">
 			<label>Keep adding edges</label>
 
+			<input id="explore_outgoing" class="w3-check w3-margin-left" type="checkbox" checked="checked">
+			<label>Outborhood</label>
+
 			<input id="explore_incoming" class="w3-check w3-margin-left" type="checkbox">
-			<label>Backward</label>
+			<label>Inborhood</label>
 		</p>
 
 		<p>
@@ -109,7 +112,7 @@
 		const edges = new vis.DataSet([]);
 		const seen = new Set();
 
-		function addNode(id, outdegree = 0, indegree = 0, parent = undefined) {
+		function addNode(id, outdegree = 0, indegree = 0, nearby_vertex = undefined) {
 
 			let n = {
 				id: id,
@@ -117,15 +120,13 @@
 				value: 1 + indegree
 			};
 
-			if (parent !== undefined && nodes.get(parent)) {
-				let { x, y } = network.getPosition(parent);
+			if (nearby_vertex !== undefined && nodes.get(nearby_vertex)) {
+				let { x, y } = network.getPosition(nearby_vertex);
 				n.x = x + (Math.random() * 16.18); // Randomize position a bit
 				n.y = y + (Math.random() * 16.18); // Randomize position a bit
 			}
 
 			let nn = nodes.add(n);
-
-			document.getElementById('queue_V').innerText = nodes.length;
 
 			return nn;
 		}
@@ -149,6 +150,7 @@
 				"minVelocity": 0.75 * 1.618,
 			}
 		};
+
 		const network = new vis.Network(container, data, options);
 
 		function toggleLayout() {
@@ -170,14 +172,10 @@
 					randomSeed: 42 // For reproducibility					
 				}
 			});
-
-			network.redraw();
 		}
 
 		function togglePhysics() {
-			let enable = document.getElementById('enable_physics').checked;
-			network.setOptions({ physics: { enabled: enable } });
-
+			network.setOptions({ physics: { enabled: document.getElementById('enable_physics').checked } });
 		}
 
 		togglePhysics();
@@ -185,27 +183,19 @@
 
 		network.on("doubleClick", function (params) {
 			params.nodes.forEach(async each => {
-
 				let edges_of_each = await fetchEdges(each);
-
 			});
 		});
-
-		function pushNode(n) {
-			if (!seen.has(n)) {
-				queue.push(n);
-			}
-
-			document.getElementById('queue_length').innerText = queue.length;
-		}
 
 		async function fetchEdges(each) {
 			return fetch(`/webgraph-api/neighborhood/${topic}/${graph_name}/${each}`)
 				.then(response => response.json())
 				.then(data => {
 
+					let newEdges = [];
+
 					if (document.getElementById('explore_incoming').checked) {
-						return data.inborhood.map(triple => {
+						data.inborhood.forEach(triple => {
 							let e = {
 								parent: each,
 								from: triple[0],
@@ -218,17 +208,16 @@
 
 							e.id = `${e.from}-${e.to}`;
 
-							pushNode(e.from);
+							queue.push(e.from);
 
 							edges_queue.push(e);
 
-							document.getElementById('edges_queue_length').innerText = edges_queue.length;
-
-							return e;
+							newEdges.push(e);
 						});
 					}
-					else {
-						return data.outborhood.map(triple => {
+
+					if (document.getElementById('explore_outgoing').checked) {
+						data.outborhood.forEach(triple => {
 							let e = {
 								parent: each,
 								from: data.vertex,
@@ -241,15 +230,20 @@
 
 							e.id = `${e.from}-${e.to}`;
 
-							pushNode(e.to);
+							queue.push(e.to);
 
 							edges_queue.push(e);
 
-							document.getElementById('edges_queue_length').innerText = edges_queue.length;
-
-							return e;
+							newEdges.push(e);
 						});
 					}
+
+					if (newEdges.length > 0) {
+						document.getElementById('queue_length').innerText = queue.length;
+						document.getElementById('edges_queue_length').innerText = edges_queue.length;
+					}
+
+					return newEdges;
 				});
 		}
 
@@ -259,34 +253,32 @@
 			if (document.getElementById('explore_edges').checked && edges_queue.length > 0) {
 
 				let e = edges_queue.pop();
+
+				if (!edges.get(e.id)) {
+
+					if (!nodes.get(e.from)) {
+						addNode(e.from, e.from_outdegree, e.from_indegree, e.parent);
+					}
+
+					if (!nodes.get(e.to)) {
+						addNode(e.to, e.to_outdegree, e.to_indegree, e.from);
+					}
+
+					// if (e.to_outdegree === 0) {
+					// 	seen.add(e.to);
+					// 	updates.push({ id: e.to, value: e.to_indegree + 1, color: { background: 'lightgray' } });
+					// }
+
+					nodes.update([{ id: e.parent, color: { background: 'lightgray' } }]);
+
+					edges.add(e);
+
+					document.getElementById('queue_V').innerText = nodes.length;
+					document.getElementById('queue_E').innerText = edges.length;
+
+				}
+
 				document.getElementById('edges_queue_length').innerText = edges_queue.length;
-
-				if (edges.get(`${e.from}-${e.to}`)) {
-					return; // Edge already exists
-				}
-
-				let updates = [];
-
-				if (!nodes.get(e.from)) {
-					addNode(e.from, e.from_outdegree, e.from_indegree, e.parent);
-				}
-
-				updates.push({ id: e.from, value: e.from_indegree, color: { background: 'lightgray' } });
-
-				if (!nodes.get(e.to)) {
-					addNode(e.to, e.to_outdegree, e.to_indegree, e.from);
-				}
-
-				if (e.to_outdegree === 0) {
-					seen.add(e.to);
-					updates.push({ id: e.to, value: e.to_indegree, color: { background: 'lightgray' } });
-				}
-
-				nodes.update(updates);
-
-				edges.add(e);
-
-				document.getElementById('queue_E').innerText = edges.length;
 			}
 		}, ((1 / 1.618) / 1.618));
 
@@ -307,7 +299,6 @@
 					seen.add(each);
 
 					let edges_of_each = await fetchEdges(each);
-
 				}
 			}
 
