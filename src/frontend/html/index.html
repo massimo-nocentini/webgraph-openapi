@@ -117,7 +117,7 @@
 			let n = {
 				id: id,
 				title: `Id: ${id.toString()}\nOutdegree: ${outdegree}\nIndegree: ${indegree}`,
-				value: 1 + indegree
+				value: 1.0 + Math.log2(1 + indegree)
 			};
 
 			if (nearby_vertex !== undefined && nodes.get(nearby_vertex)) {

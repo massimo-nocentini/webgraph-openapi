@@ -19,7 +19,7 @@ services:
       - /home/mn/Developer/bitcoin/atg:/usr/webgraphs/atg
       - /home/mn/Developer/bitcoin/pg:/usr/webgraphs/pg
       - /home/mn/Developer/bitcoin/ug:/usr/webgraphs/ug
-      - /home/mn/Developer/bitcoin/utg:/usr/webgraphs/utg
+      - /home/mn/Developer/bitcoin/tg:/usr/webgraphs/tg
 
   webgraph-openapi-frontend:
     build:
