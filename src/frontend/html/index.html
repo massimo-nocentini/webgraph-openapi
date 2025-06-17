@@ -47,8 +47,8 @@
 			<button class="w3-button w3-blue w3-margin-left" onclick="popNodeAndExplore(); popEdgeAndVizualize();">Pop
 				node and explore</button>
 
-			<button class="w3-button w3-blue w3-margin-left" onclick="shuffle(queue); shuffle(edges_queue);">Shuffle
-				queues</button>
+			<button class="w3-button w3-blue w3-margin-left" onclick="/*shuffle(queue);*/ shuffle(edges_queue);">Shuffle
+				edges queue</button>
 		</p>
 
 		<p>
@@ -90,7 +90,7 @@
 			</ul>
 		</div>
 
-		<div id="network" class="w3-card w3-border w3-round w3-margin" style="height: 1000px;"></div>
+		<div id="network" class="w3-card w3-border w3-round w3-margin" style="aspect-ratio: 1.618 / 1 auto;"></div>
 	</article>
 
 	<script>
@@ -130,6 +130,7 @@
 			});
 
 
+		const update_interval = 1.0 / 1.618; // ms
 		const nodes = new vis.DataSet([]);
 		const edges = new vis.DataSet([]);
 		const seen = new Set();
@@ -288,7 +289,7 @@
 
 					// if (e.to_outdegree === 0) {
 					// 	seen.add(e.to);
-					// 	updates.push({ id: e.to, value: e.to_indegree + 1, color: { background: 'lightgray' } });
+					// 	updates.push({ id: e.to, color: { background: 'lightgray' } });
 					// }
 
 					nodes.update([{ id: e.parent, color: { background: 'lightgray' } }]);
@@ -310,7 +311,7 @@
 				popEdgeAndVizualize();
 
 			}
-		}, ((1 / 1.618) / 1.618));
+		}, update_interval);
 
 		async function popNodeAndExplore() {
 			if (queue.length > 0) {
@@ -332,15 +333,15 @@
 			}
 		}
 
-		setInterval(() => {
+		setInterval(async () => {
 
 			if (document.getElementById('explore_nodes').checked) {
 
-				popNodeAndExplore();
+				await popNodeAndExplore();
 
 			}
 
-		}, ((1 / 1.618) / 1));
+		}, update_interval);
 
 
 	</script>
