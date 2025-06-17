@@ -43,6 +43,12 @@
 
 			<input id="explore_incoming" class="w3-check w3-margin-left" type="checkbox">
 			<label>Inborhood</label>
+
+			<button class="w3-button w3-blue w3-margin-left" onclick="popNodeAndExplore(); popEdgeAndVizualize();">Pop
+				node and explore</button>
+
+			<button class="w3-button w3-blue w3-margin-left" onclick="shuffle(queue); shuffle(edges_queue);">Shuffle
+				queues</button>
 		</p>
 
 		<p>
@@ -89,6 +95,21 @@
 
 	<script>
 
+		function shuffle(array) {
+			let currentIndex = array.length;
+
+			// While there remain elements to shuffle...
+			while (currentIndex != 0) {
+
+				// Pick a remaining element...
+				let randomIndex = Math.floor(Math.random() * currentIndex);
+				currentIndex--;
+
+				// And swap it with the current element.
+				[array[currentIndex], array[randomIndex]] = [
+					array[randomIndex], array[currentIndex]];
+			}
+		}
 
 		// let topic = 'erdos-renyi';
 		// let graph_name = '2k-0001p';
@@ -96,7 +117,8 @@
 		let topic = 'pg';
 		let graph_name = 'pg';
 
-		let queue = [759389];
+		// let queue = [759389];
+		let queue = [37028167];
 		// let queue = [0];
 		let edges_queue = []; // This will hold edges to be added
 
@@ -187,7 +209,7 @@
 			});
 		});
 
-		async function fetchEdges(each) {
+		function fetchEdges(each) {
 			return fetch(`/webgraph-api/neighborhood/${topic}/${graph_name}/${each}`)
 				.then(response => response.json())
 				.then(data => {
@@ -249,8 +271,8 @@
 
 		// let sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-		setInterval(() => {
-			if (document.getElementById('explore_edges').checked && edges_queue.length > 0) {
+		function popEdgeAndVizualize() {
+			if (edges_queue.length > 0) {
 
 				let e = edges_queue.pop();
 
@@ -280,11 +302,18 @@
 
 				document.getElementById('edges_queue_length').innerText = edges_queue.length;
 			}
+		}
+
+		setInterval(() => {
+			if (document.getElementById('explore_edges').checked) {
+
+				popEdgeAndVizualize();
+
+			}
 		}, ((1 / 1.618) / 1.618));
 
-		setInterval(async () => {
-
-			if (document.getElementById('explore_nodes').checked && queue.length > 0) {
+		async function popNodeAndExplore() {
+			if (queue.length > 0) {
 
 				let each = undefined;
 
@@ -300,6 +329,15 @@
 
 					let edges_of_each = await fetchEdges(each);
 				}
+			}
+		}
+
+		setInterval(() => {
+
+			if (document.getElementById('explore_nodes').checked) {
+
+				popNodeAndExplore();
+
 			}
 
 		}, ((1 / 1.618) / 1));
