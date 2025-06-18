@@ -15,3 +15,4 @@ It is composed of two services:
     - it exposes a control pane that allows the user to decide if he/she wants to keep objects to the visualization, according to the desired visiting strategy;
     - it shows the topology of the graph, dynamically adding vertices and edges.
 
+Under `src/docker` there is a `Makefile` that exposes some rules to build and get the system up; eventually, `make refresh` should let you head to `http://localhost:8800/`, enjoy!
