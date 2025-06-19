@@ -11,9 +11,10 @@ services:
     ports:
       - 8801:8000
     volumes:
-      - /Users/mn/Developer/working-copies/uni/avgdist-rs/data/star:/usr/webgraphs/star
+      - /Users/mn/Developer/working-copies/uni/avgdist-rs/data/star:/usr/webgraphs/star      
       - /Volumes/Data/bitcoin:/usr/webgraphs/bitcoin
       - /home/mn/Developer/working-copies/personal/development-snapshots.sh/working-copies/rust/avgdist-rs/data/star:/usr/webgraphs/star
+      - /home/mn/Developer/working-copies/personal/development-snapshots.sh/working-copies/rust/avgdist-rs/data/labeled:/usr/webgraphs/labeled
       - /home/mn/Developer/working-copies/personal/development-snapshots.sh/working-copies/rust/avgdist-rs/data/erdos-renyi:/usr/webgraphs/erdos-renyi
       - /home/mn/Developer/bitcoin/ag:/usr/webgraphs/ag
       - /home/mn/Developer/bitcoin/atg:/usr/webgraphs/atg

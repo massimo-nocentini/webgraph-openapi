@@ -44,10 +44,12 @@
 			<input id="explore_incoming" class="w3-check w3-margin-left" type="checkbox">
 			<label>Inborhood</label>
 
-			<button class="w3-btn w3-round w3-border w3-margin-left" onclick="popNodeAndExplore(); popEdgeAndVizualize();">Pop
+			<button class="w3-btn w3-round w3-border w3-margin-left"
+				onclick="popNodeAndExplore(); popEdgeAndVizualize();">Pop
 				next node and explore it</button>
 
-			<button class="w3-btn w3-round w3-border w3-margin-left" onclick="/*shuffle(queue);*/ shuffle(edges_queue);">Shuffle
+			<button class="w3-btn w3-round w3-border w3-margin-left"
+				onclick="/*shuffle(queue);*/ shuffle(edges_queue);">Shuffle
 				edges queue</button>
 		</p>
 
@@ -110,8 +112,8 @@
 		let topic = 'pg';
 		let graph_name = 'pg';
 
-		// let queue = [759389];
-		let queue = [37028167];
+		let queue = [759389];
+		// let queue = [37028167];
 		// let queue = [0];
 		let edges_queue = []; // This will hold edges to be added
 
@@ -204,55 +206,66 @@
 		});
 
 		function fetchEdges(each) {
-			return fetch(`/webgraph-api/neighborhood/${topic}/${graph_name}/${each}`)
+
+			let payload = {
+				method: "POST",
+				body: JSON.stringify([each]),
+			};
+
+			return fetch(`/webgraph-api/neighborhood/${topic}/${graph_name}`, payload)
 				.then(response => response.json())
-				.then(data => {
+				.then(array => {
 
 					let newEdges = [];
 
-					if (document.getElementById('explore_incoming').checked) {
-						data.inborhood.forEach(triple => {
-							let e = {
-								parent: each,
-								from: triple[0],
-								from_outdegree: triple[1],
-								from_indegree: triple[2],
-								to: data.vertex,
-								to_outdegree: data.outborhood.length,
-								to_indegree: data.inborhood.length,
-							};
+					array.forEach(data => {
 
-							e.id = `${e.from}-${e.to}`;
+						if (document.getElementById('explore_incoming').checked) {
+							data.inborhood.forEach(triple => {
+								let e = {
+									parent: each,
+									from: triple[0],
+									from_outdegree: triple[1],
+									from_indegree: triple[2],
+									to: data.vertex,
+									to_outdegree: data.outborhood.length,
+									to_indegree: data.inborhood.length,
+								};
 
-							queue.push(e.from);
+								e.id = `${e.from}-${e.to}`;
 
-							edges_queue.push(e);
+								queue.push(e.from);
 
-							newEdges.push(e);
-						});
-					}
+								edges_queue.push(e);
 
-					if (document.getElementById('explore_outgoing').checked) {
-						data.outborhood.forEach(triple => {
-							let e = {
-								parent: each,
-								from: data.vertex,
-								from_outdegree: data.outborhood.length,
-								from_indegree: data.inborhood.length,
-								to: triple[0],
-								to_outdegree: triple[1],
-								to_indegree: triple[2]
-							};
+								newEdges.push(e);
+							});
+						}
 
-							e.id = `${e.from}-${e.to}`;
+						if (document.getElementById('explore_outgoing').checked) {
+							data.outborhood.forEach(triple => {
+								let e = {
+									parent: each,
+									from: data.vertex,
+									from_outdegree: data.outborhood.length,
+									from_indegree: data.inborhood.length,
+									to: triple[0],
+									to_outdegree: triple[1],
+									to_indegree: triple[2]
+								};
 
-							queue.push(e.to);
+								e.id = `${e.from}-${e.to}`;
 
-							edges_queue.push(e);
+								queue.push(e.to);
 
-							newEdges.push(e);
-						});
-					}
+								edges_queue.push(e);
+
+								newEdges.push(e);
+							});
+						}
+
+
+					});
 
 					if (newEdges.length > 0) {
 						document.getElementById('queue_length').innerText = queue.length;

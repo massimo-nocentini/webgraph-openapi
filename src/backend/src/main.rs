@@ -2,6 +2,7 @@
 extern crate rocket;
 
 use rocket::serde::{Serialize, json::Json};
+
 use webgraph::{
     prelude::BvGraph,
     traits::{RandomAccessGraph, RandomAccessLabeling, SequentialLabeling},
@@ -23,6 +24,11 @@ struct Neighborhood {
     inborhood: Vec<(usize, usize, usize)>,
 }
 
+fn _labels<G: RandomAccessGraph>(graph: &G, vertex: usize) -> Vec<usize> {
+    let a = RandomAccessLabeling::labels(&graph, vertex);
+    a.into_iter().collect::<Vec<usize>>()
+}
+
 #[get("/summary/<topic>/<graph_name>")]
 fn summary(topic: &str, graph_name: &str) -> Json<GraphSummary> {
     let path = format!("/usr/webgraphs/{}/{}", topic, graph_name);
@@ -36,24 +42,57 @@ fn summary(topic: &str, graph_name: &str) -> Json<GraphSummary> {
 }
 
 #[get("/neighborhood/<topic>/<graph_name>/<vertex_id>")]
-fn neighborhood(topic: &str, graph_name: &str, vertex_id: usize) -> Json<Neighborhood> {
+fn neighborhood_get(topic: &str, graph_name: &str, vertex_id: usize) -> Json<Vec<Neighborhood>> {
+    neighborhood(topic, graph_name, Json(vec![vertex_id]))
+}
+
+#[post("/neighborhood/<topic>/<graph_name>", data = "<vertices>")]
+fn neighborhood(
+    topic: &str,
+    graph_name: &str,
+    vertices: Json<Vec<usize>>,
+) -> Json<Vec<Neighborhood>> {
     let path = format!("/usr/webgraphs/{}/{}", topic, graph_name);
     let graph = BvGraph::with_basename(&path).load().unwrap();
 
     let path_t = format!("/usr/webgraphs/{}/{}-t", topic, graph_name);
     let graph_t = BvGraph::with_basename(&path_t).load().unwrap();
 
-    Json(Neighborhood {
-        vertex: vertex_id,
-        outborhood: graph
-            .successors(vertex_id)
-            .map(|each| (each, graph.outdegree(each), graph_t.outdegree(each)))
+    Json(
+        vertices
+            .iter()
+            .map(|each| {
+                let vertex_id = *each;
+
+                Neighborhood {
+                    vertex: vertex_id,
+                    // labels: labels(&graph, vertex_id),
+                    outborhood: graph
+                        .successors(vertex_id)
+                        .map(|each| {
+                            (
+                                each,
+                                graph.outdegree(each),
+                                graph_t.outdegree(each),
+                                // labels(&graph, each),
+                            )
+                        })
+                        .collect(),
+                    inborhood: graph_t
+                        .successors(vertex_id)
+                        .map(|each| {
+                            (
+                                each,
+                                graph.outdegree(each),
+                                graph_t.outdegree(each),
+                                // labels(&graph, each),
+                            )
+                        })
+                        .collect(),
+                }
+            })
             .collect(),
-        inborhood: graph_t
-            .successors(vertex_id)
-            .map(|each| (each, graph.outdegree(each), graph_t.outdegree(each)))
-            .collect(),
-    })
+    )
 }
 
 #[get("/")]
@@ -66,5 +105,8 @@ fn echo() -> &'static str {
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/webgraph-api", routes![neighborhood, summary, echo])
+    rocket::build().mount(
+        "/webgraph-api",
+        routes![neighborhood_get, neighborhood, summary, echo],
+    )
 }
