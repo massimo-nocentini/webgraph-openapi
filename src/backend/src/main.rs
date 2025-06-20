@@ -1,12 +1,29 @@
 #[macro_use]
 extern crate rocket;
 
-use rocket::serde::{Serialize, json::Json};
+use std::sync::Arc;
 
+use avgdist_rs::avgdist_sample;
+use rocket::serde::{Deserialize, Serialize, json::Json};
 use webgraph::{
     prelude::BvGraph,
     traits::{RandomAccessGraph, RandomAccessLabeling, SequentialLabeling},
 };
+
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
+struct AvgdistRequest {
+    num_threads: usize,
+    sample_size: usize,
+    exact: bool,
+}
+
+#[derive(Serialize)]
+#[serde(crate = "rocket::serde")]
+struct AvgdistResponse {
+    diameter: usize,
+    distance: f64,
+}
 
 #[derive(Serialize)]
 #[serde(crate = "rocket::serde")]
@@ -38,6 +55,29 @@ fn summary(topic: &str, graph_name: &str) -> Json<GraphSummary> {
         graph_name: graph_name.to_string(),
         num_nodes: graph.num_nodes(),
         num_arcs: graph.num_arcs(),
+    })
+}
+
+#[post("/avgdist/<topic>/<graph_name>", data = "<params>")]
+fn avgdist(topic: &str, graph_name: &str, params: Json<AvgdistRequest>) -> Json<AvgdistResponse> {
+    let path = format!("/usr/webgraphs/{}/{}", topic, graph_name);
+    let graph = BvGraph::with_basename(&path).load().unwrap();
+
+    let thread_pool = rayon::ThreadPoolBuilder::default()
+        .num_threads(params.num_threads)
+        .build()
+        .expect("Failed to create thread pool");
+
+    let tuple = avgdist_sample(
+        &thread_pool,
+        params.sample_size,
+        Arc::new(graph),
+        params.exact,
+    );
+
+    Json(AvgdistResponse {
+        diameter: tuple.0,
+        distance: tuple.3 / (tuple.4 as f64),
     })
 }
 
@@ -107,6 +147,6 @@ fn echo() -> &'static str {
 fn rocket() -> _ {
     rocket::build().mount(
         "/webgraph-api",
-        routes![neighborhood_get, neighborhood, summary, echo],
+        routes![avgdist, neighborhood_get, neighborhood, summary, echo],
     )
 }

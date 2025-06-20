@@ -21,6 +21,7 @@ Under `src/docker` there is a `Makefile` that exposes some rules to build and ge
 
 |endpoint|method|body|response|
 |---|---|---|---|
-|`/webgraph-api/summary/<topic>/<graph_name>`|`GET`||`{"graph_name":"pg","num_nodes":668261953,"num_arcs":2162523341}`|
-|`/webgraph-api/neighborhood/<topic>/<graph_name>/<vertex_id>`|`GET`||`[{"vertex":3517367,"outborhood":[[3518074,2,1],[3518075,2,1]],"inborhood":[[3514838,2,1]]}]`|
-|`/webgraph-api/neighborhood/<topic>/<graph_name>`|`POST`|An array of `usize` values, for example: `[5748,4589,324,1]`|`[{"vertex":3517367,"outborhood":[[3518074,2,1],[3518075,2,1]],"inborhood":[[3514838,2,1]]},{"vertex":857487,"outborhood":[[857878,2,1],[857879,2,1]],"inborhood":[[857231,2,1]]}]`|
+|`/webgraph-api/summary/<topic>/<graph_name>`|`GET`||An object with properties `graph_name` of type `str`, `num_nodes` and `num_arcs` of type `usize`. For example, `{"graph_name":"pg","num_nodes":668261953,"num_arcs":2162523341}`.|
+|`/webgraph-api/neighborhood/<topic>/<graph_name>/<vertex_id>`|`GET`||An array of objects, each with properties `vertex` of type `usize`, `outborhood` and `inborhood` of type `array` of triples `(v, o, i)` where `v` is the neighbor vertex according to the direction, `o` is its *outdegree* and `i` is its *indegree*, respectively. For example, `[{"vertex":3517367,"outborhood":[[3518074,2,1],[3518075,2,1]],"inborhood":[[3514838,2,1]]}]`.|
+|`/webgraph-api/neighborhood/<topic>/<graph_name>`|`POST`|An array of `usize` values, each one is a vertex id in the graph. For example: `[5748,4589,324,1]`|As above, for example `[{"vertex":3517367,"outborhood":[[3518074,2,1],[3518075,2,1]],"inborhood":[[3514838,2,1]]},{"vertex":857487,"outborhood":[[857878,2,1],[857879,2,1]],"inborhood":[[857231,2,1]]}]`.|
+|`/webgraph-api/avgdist/<topic>/<graph_name>`|`POST`|An object with properties `num_threads` of type `usize`, `sample_size` of type `usize` and `exact` of type `bool`. For example: `{ "num_threads": 4, "sample_size": 100, "exact": true }`|An object with properties `distance` of type `f64` and `diameter` of type `usize`. For example, `{"distance":351.7367,"diameter":12}`.|

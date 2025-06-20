@@ -22,6 +22,8 @@
 			<li>Graph name: <span id="graph_name"></span></li>
 			<li>|V|: <span id="graph_V" class="w3-monospace">0</span></li>
 			<li>|E|: <span id="graph_E" class="w3-monospace">0</span></li>
+			<li>diameter: <span id="graph_diameter" class="w3-monospace">unknown</span></li>
+			<li>avgdist: <span id="graph_avgdist" class="w3-monospace">unknown</span></li>
 		</ul>
 	</article>
 
@@ -106,15 +108,15 @@
 			}
 		}
 
-		// let topic = 'erdos-renyi';
-		// let graph_name = '2k-0001p';
+		let topic = 'erdos-renyi';
+		let graph_name = '2k-0001p';
 
-		let topic = 'pg';
-		let graph_name = 'pg';
+		// let topic = 'pg';
+		// let graph_name = 'pg';
 
-		let queue = [759389];
+		// let queue = [759389];
 		// let queue = [37028167];
-		// let queue = [0];
+		let queue = [1000];
 		let edges_queue = []; // This will hold edges to be added
 
 		fetch(`/webgraph-api/summary/${topic}/${graph_name}`)
@@ -348,6 +350,26 @@
 			}
 
 		}, update_interval);
+
+		window.addEventListener("load", (event) => {
+
+			document.getElementById('graph_avgdist').innerText = '(...)';
+			document.getElementById('graph_diameter').innerText = '(...)';
+
+			let body = { num_threads: 4, sample_size: 100, exact: true };
+
+			let payload = {
+				method: "POST",
+				body: JSON.stringify(body),
+			};
+
+			fetch(`/webgraph-api/avgdist/${topic}/${graph_name}`, payload)
+				.then(response => response.json())
+				.then(data => {
+					document.getElementById('graph_avgdist').innerText = data.distance.toFixed(3);
+					document.getElementById('graph_diameter').innerText = data.diameter;
+				})
+		});
 
 
 	</script>

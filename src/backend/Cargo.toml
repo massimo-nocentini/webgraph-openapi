@@ -5,7 +5,8 @@ edition = "2024"
 
 [dependencies]
 webgraph = { git = "https://github.com/vigna/webgraph-rs" }
-
+avgdist-rs = { git = "https://github.com/massimo-nocentini/avgdist-rs.git" }
+rayon = "1.10.0"
 
 [dependencies.rocket]
 version = "0.5.1"
