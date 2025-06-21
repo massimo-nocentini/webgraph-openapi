@@ -189,18 +189,20 @@
 		// let queue = [37028167];
 		let queue = [];
 		let edges_queue = []; // This will hold edges to be added	
+		const seen = new Set();
 
 		const update_interval = 1.0 / 1.618; // ms
 		const nodes = new vis.DataSet([]);
 		const edges = new vis.DataSet([]);
-		const seen = new Set();
 
 		function addNode(id, outdegree = 0, indegree = 0, nearby_vertex = undefined) {
 
 			let n = {
 				id: id,
 				title: `Id: ${id.toString()}\nOutdegree: ${outdegree}\nIndegree: ${indegree}`,
-				value: 1.0 + Math.log2(1 + indegree)
+				value: 1.0 + Math.log2(1 + indegree),
+				widthConstraint: 1.0 + Math.log2(1 + outdegree),
+				heightConstraint: 1.0 + Math.log2(1 + indegree),
 			};
 
 			if (nearby_vertex !== undefined && nodes.get(nearby_vertex)) {
@@ -219,8 +221,8 @@
 		const data = { nodes, edges };
 		const options = {
 			nodes: {
-				shape: 'dot',
-				size: 1,
+				shape: "box",
+				margin: 10,
 			},
 			edges: {
 				smooth: {
@@ -536,6 +538,27 @@
 		}
 
 	</script>
+
+	<hr>
+
+	<footer class="w3-container w3-center w3-margin-top">
+		<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">
+			<img alt="Creative Commons License" style="border-width:0"
+				src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" />
+		</a>
+		<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">
+			<img alt="Creative Commons License" style="border-width:0"
+				src="https://mirrors.creativecommons.org/presskit/icons/by.svg" />
+		</a>
+		<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">
+			<img alt="Creative Commons License" style="border-width:0"
+				src="https://mirrors.creativecommons.org/presskit/icons/sa.svg" />
+		</a>
+		<br />
+		This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative
+			Commons Attribution-ShareAlike 4.0
+			International License</a>.
+	</footer>
 </body>
 
 </html>
