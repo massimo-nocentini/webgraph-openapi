@@ -16,11 +16,27 @@
 
 	<h1 class="w3-center">Webgraph interface</h1>
 
+	<hr>
+
 	<h2>Summary and measures</h2>
 
 	<article class="w3-container w3-margin">
+		<div class="w3-container w3-margin">
+			<label for="graph_input_topic">Topic:</label>
+			<input id="graph_input_topic" class="w3-border w3-round" value="pg">
+
+			<label for="graph_input_name" class="w3-margin-left">Graph prefix:</label>
+			<input id="graph_input_name" class="w3-border w3-round" value="pg">
+
+			<label for="graph_input_initial_vertices" class="w3-margin-left">Initial vertices (<i>comma
+					separeted</i>):</label>
+			<input id="graph_input_initial_vertices" class="w3-border w3-round" value="">
+
+			<button class="w3-btn w3-round w3-border w3-margin-left" id="graph_topic_graph_button"
+				onclick="load_graph();">Load</button>
+		</div>
+
 		<ul class="w3-ul w3-border w3-round">
-			<li>Graph name: <span id="graph_name"></span></li>
 			<li>|V|: <span id="graph_V" class="w3-monospace">0</span></li>
 			<li>|E|: <span id="graph_E" class="w3-monospace">0</span></li>
 		</ul>
@@ -33,15 +49,13 @@
 		<div class="w3-container w3-margin">
 
 			<label for="graph_avgdist_sample_size">Sample size:</label>
-			<input id="graph_avgdist_sample_size" class="w3-border w3-round" type="number"
-				placeholder="Sample size (default: 100)" value="100">
+			<input id="graph_avgdist_sample_size" class="w3-border w3-round" type="number" value="100">
 
 
 			<label class="w3-margin-left" for="graph_avgdist_num_threads">Threads pool size:</label>
-			<input id="graph_avgdist_num_threads" class="w3-border w3-round" type="number"
-				placeholder="Sample size (default: 4)" value="4">
+			<input id="graph_avgdist_num_threads" class="w3-border w3-round" type="number" value="4">
 
-			<input id="graph_avgdist_estimated" class="w3-border w3-round w3-margin-left" type="checkbox"
+			<input id="graph_avgdist_estimated" class="w3-border w3-round w3-margin-left w3-check" type="checkbox"
 				checked="checked">
 			<label for="graph_avgdist_estimated">Estimated</label>
 
@@ -70,7 +84,8 @@
 			<label class="w3-margin-left" for="graph_hc_num_bins">Bins size:</label>
 			<input id="graph_hc_num_bins" class="w3-border w3-round" type="number" value="100">
 
-			<input id="graph_hc_estimated" class="w3-border w3-round w3-margin-left" type="checkbox" checked="checked">
+			<input id="graph_hc_estimated" class="w3-border w3-round w3-margin-left w3-check" type="checkbox"
+				checked="checked">
 			<label for="graph_hc_estimated">Estimated</label>
 
 			<button class="w3-btn w3-round w3-border w3-margin-left" id="graph_hc_button"
@@ -165,17 +180,16 @@
 			}
 		}
 
-		let topic = 'erdos-renyi';
-		let graph_name = '2k-0001p';
+		let topic = '';//'erdos-renyi';
+		let graph_name = '';//'2k-0001p';
 
 		// let topic = 'pg';
 		// let graph_name = 'pg';
 
 		// let queue = [759389];
 		// let queue = [37028167];
-		let queue = [1000];
+		let queue = [];
 		let edges_queue = []; // This will hold edges to be added	
-
 
 		const update_interval = 1.0 / 1.618; // ms
 		const nodes = new vis.DataSet([]);
@@ -491,10 +505,13 @@
 
 		}, update_interval);
 
-		window.addEventListener("load", (event) => {
-			fetch(`/webgraph-api/summary/${topic}/${graph_name}`)
+
+		async function load_graph() {
+			topic = document.getElementById('graph_input_topic').value;
+			graph_name = document.getElementById('graph_input_name').value;
+
+			await fetch(`/webgraph-api/summary/${topic}/${graph_name}`)
 				.then(response => response.json()).then(summary => {
-					document.getElementById('graph_name').innerText = summary.graph_name;
 					document.getElementById('graph_V').innerText = summary.num_nodes;
 					document.getElementById('graph_E').innerText = summary.num_arcs;
 
@@ -502,9 +519,22 @@
 					let k = Math.ceil(Math.log10(summary.num_nodes) / (2.0 * epsilon * epsilon));
 					document.getElementById('graph_avgdist_sample_size').value = k;
 					document.getElementById('graph_hc_sample_size').value = k;
-				});
-		});
 
+					nodes.clear();
+					edges.clear();
+					seen.clear();
+
+					queue.length = 0;
+					edges_queue.length = 0;
+
+					JSON.parse('[' + document.getElementById('graph_input_initial_vertices').value + ']').forEach(
+						id => queue.push(id));
+
+				});
+
+
+
+		}
 
 	</script>
 </body>
