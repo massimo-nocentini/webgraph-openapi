@@ -407,6 +407,9 @@
 						document.getElementById('graph_name').innerText = summary.graph_name;
 						document.getElementById('graph_V').innerText = summary.num_nodes;
 						document.getElementById('graph_E').innerText = summary.num_arcs;
+
+						let epsilon = 0.1;
+						document.getElementById('graph_avgdist_sample_size').value = Math.ceil(Math.log10(summary.num_nodes) / (2.0 * epsilon * epsilon));
 					});
 			});
 
