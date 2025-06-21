@@ -5,6 +5,7 @@
 	<title>Webgraph interface</title>
 	<!-- <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>	 -->
 	<script type="text/javascript" src="vis-network.min.js"></script>
+	<script type="text/javascript" src="https://d3js.org/d3.v7.min.js"></script>
 	<link href="data:image/x-icon;base64,YourBase64StringHere" rel="icon" type="image/x-icon" />
 	<link rel="stylesheet" href="https://www.w3schools.com/w3css/5/w3.css">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -25,396 +26,487 @@
 		</ul>
 	</article>
 
-	<h3>Average Distance</h2>
+	<h3>Average Distance</h3>
 
-		<article class="w3-container w3-margin">
+	<article class="w3-container w3-margin">
+
+		<div class="w3-container w3-margin">
+
+			<label for="graph_avgdist_sample_size">Sample size:</label>
+			<input id="graph_avgdist_sample_size" class="w3-border w3-round" type="number"
+				placeholder="Sample size (default: 100)" value="100">
+
+
+			<label class="w3-margin-left" for="graph_avgdist_num_threads">Threads pool size:</label>
+			<input id="graph_avgdist_num_threads" class="w3-border w3-round" type="number"
+				placeholder="Sample size (default: 4)" value="4">
+
+			<input id="graph_avgdist_estimated" class="w3-border w3-round w3-margin-left" type="checkbox"
+				checked="checked">
+			<label for="graph_avgdist_estimated">Estimated</label>
+
+			<button class="w3-btn w3-round w3-border w3-margin-left" id="graph_avgdist_button"
+				onclick="avgdist();">Calculate</button>
+
+		</div>
+
+		<ul class="w3-ul w3-border w3-round">
+			<li>diameter: <span id="graph_diameter" class="w3-monospace">unknown</span></li>
+			<li>avgdist: <span id="graph_avgdist" class="w3-monospace">unknown</span></li>
+		</ul>
+	</article>
+
+	<h3>Harmonic Centrality</h3>
+
+	<article class="w3-container w3-margin">
+
+		<div class="w3-container w3-margin">
+			<label for="graph_hc_sample_size">Sample size:</label>
+			<input id="graph_hc_sample_size" class="w3-border w3-round" type="number" value="100">
+
+			<label class="w3-margin-left" for="graph_hc_num_threads">Threads pool size:</label>
+			<input id="graph_hc_num_threads" class="w3-border w3-round" type="number" value="4">
+
+			<label class="w3-margin-left" for="graph_hc_num_bins">Bins size:</label>
+			<input id="graph_hc_num_bins" class="w3-border w3-round" type="number" value="100">
+
+			<input id="graph_hc_estimated" class="w3-border w3-round w3-margin-left" type="checkbox" checked="checked">
+			<label for="graph_hc_estimated">Estimated</label>
+
+			<button class="w3-btn w3-round w3-border w3-margin-left" id="graph_hc_button"
+				onclick="hc();">Calculate</button>
+
+		</div>
+
+		<div class="w3-container w3-border w3-round">
+			<svg id="hc_histogram" width="600" height="400"></svg>
+		</div>
+	</article>
+
+	<h2>Controls</h2>
+
+	<article class="w3-container w3-round w3-margin w3-border">
+
+		<p>
+			<b>Exploring</b>
+
+			<input id="explore_nodes" class="w3-check w3-margin-left" type="checkbox">
+			<label for="explore_nodes">Keep exploring nodes</label>
+
+			<input id="explore_edges" class="w3-check w3-margin-left" type="checkbox" checked="checked">
+			<label for="explore_edges">Keep adding edges</label>
+
+			<input id="explore_outgoing" class="w3-check w3-margin-left" type="checkbox" checked="checked">
+			<label>Outborhood</label>
+
+			<input id="explore_incoming" class="w3-check w3-margin-left" type="checkbox">
+			<label>Inborhood</label>
+
+			<button class="w3-btn w3-round w3-border w3-margin-left"
+				onclick="popNodeAndExplore(); popEdgeAndVizualize();">Pop
+				next node and explore it</button>
+
+			<button class="w3-btn w3-round w3-border w3-margin-left"
+				onclick="/*shuffle(queue);*/ shuffle(edges_queue);">Shuffle
+				edges queue</button>
+		</p>
+
+		<p>
+			<b>Visit strategy</b>
+
+			<input class="w3-radio w3-margin-left" id="radio_bfs" type="radio" name="visit_algorithm" value="bfs"
+				checked="checked">
+			<label>BFS</label>
+
+			<input class="w3-radio w3-margin-left" id="radio_dfs" type="radio" name="visit_algorithm" value="dfs">
+			<label>DFS</label>
+
+		</p>
+
+		<p>
+			<b>Layout</b>
+
+			<input class="w3-check w3-margin-left" id="radio_layout_hierarchical" type="checkbox"
+				name="layout_algorithm" value="hierarchical" onclick="toggleLayout()">
+			<label>Hierarchical</label>
+
+			<input id="enable_physics" class="w3-check w3-margin-left" type="checkbox" checked="checked"
+				onclick="togglePhysics()">
+			<label>Physics stabilization</label>
+		</p>
+
+	</article>
+
+	<h2>Viz</h2>
+
+	<article class="w3-container w3-margin">
+
+		<div class="w3-container w3-margin">
 			<ul class="w3-ul w3-border w3-round">
-				<li>diameter: <span id="graph_diameter" class="w3-monospace">unknown</span></li>
-				<li>avgdist: <span id="graph_avgdist" class="w3-monospace">unknown</span></li>
+				<li>|V|: <span id="queue_V" class="w3-monospace">0</span></li>
+				<li>|E|: <span id="queue_E" class="w3-monospace">0</span></li>
+				<li>Nodes queue length: <span id="queue_length" class="w3-monospace">0</span></li>
+				<li>Edges queue length: <span id="edges_queue_length" class="w3-monospace">0</span></li>
 			</ul>
+		</div>
 
-			<div class="w3-container w3-margin">
-				<label for="graph_avgdist_sample_size">Sample size:</label>
-				<input id="graph_avgdist_sample_size" class="w3-border w3-round" type="number"
-					placeholder="Sample size (default: 100)" value="100">
+		<div id="network" class="w3-card w3-border w3-round w3-margin" style="aspect-ratio: 1.618 / 1 auto;"></div>
+	</article>
 
 
-				<label class="w3-margin-left" for="graph_avgdist_num_threads">Threads pool size:</label>
-				<input id="graph_avgdist_num_threads" class="w3-border w3-round" type="number"
-					placeholder="Sample size (default: 4)" value="4">
+	<script>
 
-				<input id="graph_avgdist_estimated" class="w3-border w3-round w3-margin-left" type="checkbox"
-					checked="checked">
-				<label for="graph_avgdist_estimated">Estimated</label>
-
-				<button class="w3-btn w3-round w3-border w3-margin-left" id="graph_avgdist_button"
-					onclick="avgdist();">Calculate</button>
-
-			</div>
-		</article>
-
-		<h2>Controls</h2>
-
-		<article class="w3-container w3-round w3-margin w3-border">
-
-			<p>
-				<b>Exploring</b>
-
-				<input id="explore_nodes" class="w3-check w3-margin-left" type="checkbox">
-				<label for="explore_nodes">Keep exploring nodes</label>
-
-				<input id="explore_edges" class="w3-check w3-margin-left" type="checkbox" checked="checked">
-				<label for="explore_edges">Keep adding edges</label>
-
-				<input id="explore_outgoing" class="w3-check w3-margin-left" type="checkbox" checked="checked">
-				<label>Outborhood</label>
-
-				<input id="explore_incoming" class="w3-check w3-margin-left" type="checkbox">
-				<label>Inborhood</label>
-
-				<button class="w3-btn w3-round w3-border w3-margin-left"
-					onclick="popNodeAndExplore(); popEdgeAndVizualize();">Pop
-					next node and explore it</button>
-
-				<button class="w3-btn w3-round w3-border w3-margin-left"
-					onclick="/*shuffle(queue);*/ shuffle(edges_queue);">Shuffle
-					edges queue</button>
-			</p>
-
-			<p>
-				<b>Visit strategy</b>
-
-				<input class="w3-radio w3-margin-left" id="radio_bfs" type="radio" name="visit_algorithm" value="bfs"
-					checked="checked">
-				<label>BFS</label>
-
-				<input class="w3-radio w3-margin-left" id="radio_dfs" type="radio" name="visit_algorithm" value="dfs">
-				<label>DFS</label>
-
-			</p>
-
-			<p>
-				<b>Layout</b>
-
-				<input class="w3-check w3-margin-left" id="radio_layout_hierarchical" type="checkbox"
-					name="layout_algorithm" value="hierarchical" onclick="toggleLayout()">
-				<label>Hierarchical</label>
-
-				<input id="enable_physics" class="w3-check w3-margin-left" type="checkbox" checked="checked"
-					onclick="togglePhysics()">
-				<label>Physics stabilization</label>
-			</p>
-
-		</article>
-
-		<h2>Viz</h2>
-
-		<article class="w3-container w3-margin">
-
-			<div class="w3-container w3-margin">
-				<ul class="w3-ul w3-border w3-round">
-					<li>|V|: <span id="queue_V" class="w3-monospace">0</span></li>
-					<li>|E|: <span id="queue_E" class="w3-monospace">0</span></li>
-					<li>Nodes queue length: <span id="queue_length" class="w3-monospace">0</span></li>
-					<li>Edges queue length: <span id="edges_queue_length" class="w3-monospace">0</span></li>
-				</ul>
-			</div>
-
-			<div id="network" class="w3-card w3-border w3-round w3-margin" style="aspect-ratio: 1.618 / 1 auto;"></div>
-		</article>
-
-		<script>
-
-			function shuffle(array) {
-				for (var i = array.length - 1; i > 0; i--) {
-					var j = Math.floor(Math.random() * (i + 1));
-					var temp = array[i];
-					array[i] = array[j];
-					array[j] = temp;
-				}
+		function shuffle(array) {
+			for (var i = array.length - 1; i > 0; i--) {
+				var j = Math.floor(Math.random() * (i + 1));
+				var temp = array[i];
+				array[i] = array[j];
+				array[j] = temp;
 			}
+		}
 
-			let topic = 'erdos-renyi';
-			let graph_name = '2k-0001p';
+		let topic = 'erdos-renyi';
+		let graph_name = '2k-0001p';
 
-			// let topic = 'pg';
-			// let graph_name = 'pg';
+		// let topic = 'pg';
+		// let graph_name = 'pg';
 
-			// let queue = [759389];
-			// let queue = [37028167];
-			let queue = [1000];
-			let edges_queue = []; // This will hold edges to be added	
+		// let queue = [759389];
+		// let queue = [37028167];
+		let queue = [1000];
+		let edges_queue = []; // This will hold edges to be added	
 
 
-			const update_interval = 1.0 / 1.618; // ms
-			const nodes = new vis.DataSet([]);
-			const edges = new vis.DataSet([]);
-			const seen = new Set();
+		const update_interval = 1.0 / 1.618; // ms
+		const nodes = new vis.DataSet([]);
+		const edges = new vis.DataSet([]);
+		const seen = new Set();
 
-			function addNode(id, outdegree = 0, indegree = 0, nearby_vertex = undefined) {
+		function addNode(id, outdegree = 0, indegree = 0, nearby_vertex = undefined) {
 
-				let n = {
-					id: id,
-					title: `Id: ${id.toString()}\nOutdegree: ${outdegree}\nIndegree: ${indegree}`,
-					value: 1.0 + Math.log2(1 + indegree)
-				};
-
-				if (nearby_vertex !== undefined && nodes.get(nearby_vertex)) {
-					let { x, y } = network.getPosition(nearby_vertex);
-					n.x = x + (Math.random() * 16.18); // Randomize position a bit
-					n.y = y + (Math.random() * 16.18); // Randomize position a bit
-				}
-
-				let nn = nodes.add(n);
-
-				return nn;
-			}
-
-			// Create a network
-			const container = document.getElementById('network');
-			const data = { nodes, edges };
-			const options = {
-				nodes: {
-					shape: 'dot',
-					size: 1,
-				},
-				edges: {
-					smooth: {
-						"type": "dynamic",
-						"forceDirection": "none"
-					},
-					arrows: { to: true }
-				},
-				physics: {
-					"minVelocity": 0.75 * 1.618,
-				}
+			let n = {
+				id: id,
+				title: `Id: ${id.toString()}\nOutdegree: ${outdegree}\nIndegree: ${indegree}`,
+				value: 1.0 + Math.log2(1 + indegree)
 			};
 
-			const network = new vis.Network(container, data, options);
+			if (nearby_vertex !== undefined && nodes.get(nearby_vertex)) {
+				let { x, y } = network.getPosition(nearby_vertex);
+				n.x = x + (Math.random() * 16.18); // Randomize position a bit
+				n.y = y + (Math.random() * 16.18); // Randomize position a bit
+			}
 
-			function toggleLayout() {
-				let enable = document.getElementById('radio_layout_hierarchical').checked;
-				network.setOptions({
-					layout: {
-						hierarchical: {
-							enabled: enable,
-							levelSeparation: 150,
-							nodeSpacing: 100,
-							treeSpacing: 200,
-							blockShifting: true,
-							edgeMinimization: true,
-							parentCentralization: true,
-							direction: 'LR', // UD, DU, LR, RL
-							sortMethod: 'directed',
-							shakeTowards: 'roots',
-						},
-						randomSeed: 42 // For reproducibility					
+			let nn = nodes.add(n);
+
+			return nn;
+		}
+
+		// Create a network
+		const container = document.getElementById('network');
+		const data = { nodes, edges };
+		const options = {
+			nodes: {
+				shape: 'dot',
+				size: 1,
+			},
+			edges: {
+				smooth: {
+					"type": "dynamic",
+					"forceDirection": "none"
+				},
+				arrows: { to: true }
+			},
+			physics: {
+				"minVelocity": 0.75 * 1.618,
+			}
+		};
+
+		const network = new vis.Network(container, data, options);
+
+		function toggleLayout() {
+			let enable = document.getElementById('radio_layout_hierarchical').checked;
+			network.setOptions({
+				layout: {
+					hierarchical: {
+						enabled: enable,
+						levelSeparation: 150,
+						nodeSpacing: 100,
+						treeSpacing: 200,
+						blockShifting: true,
+						edgeMinimization: true,
+						parentCentralization: true,
+						direction: 'LR', // UD, DU, LR, RL
+						sortMethod: 'directed',
+						shakeTowards: 'roots',
+					},
+					randomSeed: 42 // For reproducibility					
+				}
+			});
+		}
+
+		function togglePhysics() {
+			network.setOptions({ physics: { enabled: document.getElementById('enable_physics').checked } });
+		}
+
+		togglePhysics();
+		toggleLayout();
+
+		network.on("doubleClick", function (params) {
+			params.nodes.forEach(async each => {
+				let edges_of_each = await fetchEdges(each);
+			});
+		});
+
+		function fetchEdges(each) {
+
+			let payload = {
+				method: "POST",
+				body: JSON.stringify([each]),
+			};
+
+			return fetch(`/webgraph-api/neighborhood/${topic}/${graph_name}`, payload)
+				.then(response => response.json())
+				.then(array => {
+
+					let newEdges = [];
+
+					array.forEach(data => {
+
+						if (document.getElementById('explore_incoming').checked) {
+							data.inborhood.forEach(triple => {
+								let e = {
+									parent: each,
+									from: triple[0],
+									from_outdegree: triple[1],
+									from_indegree: triple[2],
+									to: data.vertex,
+									to_outdegree: data.outborhood.length,
+									to_indegree: data.inborhood.length,
+								};
+
+								e.id = `${e.from}-${e.to}`;
+
+								queue.push(e.from);
+
+								edges_queue.push(e);
+
+								newEdges.push(e);
+							});
+						}
+
+						if (document.getElementById('explore_outgoing').checked) {
+							data.outborhood.forEach(triple => {
+								let e = {
+									parent: each,
+									from: data.vertex,
+									from_outdegree: data.outborhood.length,
+									from_indegree: data.inborhood.length,
+									to: triple[0],
+									to_outdegree: triple[1],
+									to_indegree: triple[2]
+								};
+
+								e.id = `${e.from}-${e.to}`;
+
+								queue.push(e.to);
+
+								edges_queue.push(e);
+
+								newEdges.push(e);
+							});
+						}
+
+
+					});
+
+					if (newEdges.length > 0) {
+						document.getElementById('queue_length').innerText = queue.length;
+						document.getElementById('edges_queue_length').innerText = edges_queue.length;
 					}
+
+					return newEdges;
 				});
+		}
+
+		// let sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+		function popEdgeAndVizualize() {
+			if (edges_queue.length > 0) {
+
+				let e = edges_queue.pop();
+
+				if (!edges.get(e.id)) {
+
+					if (!nodes.get(e.from)) {
+						addNode(e.from, e.from_outdegree, e.from_indegree, e.parent);
+					}
+
+					if (!nodes.get(e.to)) {
+						addNode(e.to, e.to_outdegree, e.to_indegree, e.from);
+					}
+
+					// if (e.to_outdegree === 0) {
+					// 	seen.add(e.to);
+					// 	updates.push({ id: e.to, color: { background: 'lightgray' } });
+					// }
+
+					nodes.update([{ id: e.parent, color: { background: 'lightgray' } }]);
+
+					edges.add(e);
+
+					document.getElementById('queue_V').innerText = nodes.length;
+					document.getElementById('queue_E').innerText = edges.length;
+
+				}
+
+				document.getElementById('edges_queue_length').innerText = edges_queue.length;
 			}
+		}
 
-			function togglePhysics() {
-				network.setOptions({ physics: { enabled: document.getElementById('enable_physics').checked } });
+		function avgdist() {
+
+			document.getElementById('graph_avgdist').innerText = '(...)';
+			document.getElementById('graph_diameter').innerText = '(...)';
+			document.getElementById('graph_avgdist_button').disabled = true;
+			document.getElementById('graph_avgdist_button').innerText = 'Calculating...';
+
+
+			let body = {
+				num_threads: parseInt(document.getElementById('graph_avgdist_num_threads').value),
+				sample_size: parseInt(document.getElementById('graph_avgdist_sample_size').value),
+				exact: !document.getElementById('graph_avgdist_estimated').checked
+			};
+
+			let payload = {
+				method: "POST",
+				body: JSON.stringify(body),
+			};
+
+			fetch(`/webgraph-api/avgdist/${topic}/${graph_name}`, payload)
+				.then(response => response.json())
+				.then(data => {
+					document.getElementById('graph_avgdist').innerText = data.distance.toFixed(3);
+					document.getElementById('graph_diameter').innerText = data.diameter;
+				})
+				.finally(() => {
+					document.getElementById('graph_avgdist_button').disabled = false;
+					document.getElementById('graph_avgdist_button').innerText = 'Calculate';
+				});
+		}
+
+		function hc() {
+
+			// document.getElementById('graph_hc').innerText = '(...)';
+			// document.getElementById('graph_diameter').innerText = '(...)';
+			document.getElementById('graph_hc_button').disabled = true;
+			document.getElementById('graph_hc_button').innerText = 'Calculating...';
+
+
+			let body = {
+				num_threads: parseInt(document.getElementById('graph_hc_num_threads').value),
+				sample_size: parseInt(document.getElementById('graph_hc_sample_size').value),
+				exact: !document.getElementById('graph_hc_estimated').checked
+			};
+
+			let payload = {
+				method: "POST",
+				body: JSON.stringify(body),
+			};
+
+			fetch(`/webgraph-api/harmonic_centrality/${topic}/${graph_name}`, payload)
+				.then(response => response.json())
+				.then(rdata => {
+					const data = rdata.centralities.map(d => d[1]);
+					let num_bins = document.getElementById('graph_hc_num_bins').value;
+
+					d3.select("svg").selectAll("*").remove();
+
+					const svg = d3.select("svg"),
+						width = +svg.attr("width"),
+						height = +svg.attr("height"),
+						margin = { top: 20, right: 20, bottom: 30, left: 50 },
+						w = width - margin.left - margin.right,
+						h = height - margin.top - margin.bottom;
+
+					const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+					const x = d3.scaleLinear().domain([0, d3.max(data)]).range([0, w]);
+					const bins = d3.bin().domain(x.domain()).thresholds(num_bins)(data);
+
+					// Add +1 to avoid log(0)
+					const y = d3.scaleLog()
+						.domain([1, d3.max(bins, d => d.length) + 1])
+						.range([h, 0]);
+
+					g.selectAll("rect").data(bins).join("rect")
+						.attr("x", d => x(d.x0)).attr("y", d => y(d.length + 1))
+						.attr("width", d => x(d.x1) - x(d.x0) - 1)
+						.attr("height", d => h - y(d.length + 1))
+						.attr("fill", "steelblue");
+
+					g.append("g").attr("transform", `translate(0,${h})`).call(d3.axisBottom(x));
+					g.append("g").call(d3.axisLeft(y).ticks(5, "~s")); // "~s" makes ticks cleaner
+				})
+				.finally(() => {
+					document.getElementById('graph_hc_button').disabled = false;
+					document.getElementById('graph_hc_button').innerText = 'Calculate';
+				});
+		}
+
+		setInterval(() => {
+			if (document.getElementById('explore_edges').checked) {
+
+				popEdgeAndVizualize();
+
 			}
+		}, update_interval);
 
-			togglePhysics();
-			toggleLayout();
+		async function popNodeAndExplore() {
+			if (queue.length > 0) {
 
-			network.on("doubleClick", function (params) {
-				params.nodes.forEach(async each => {
+				let each = undefined;
+
+				if (document.getElementById('radio_bfs').checked) {
+					each = queue.shift();
+				} else {
+					each = queue.pop();
+				}
+
+				if (!seen.has(each)) {
+
+					seen.add(each);
+
 					let edges_of_each = await fetchEdges(each);
+				}
+			}
+		}
+
+		setInterval(async () => {
+
+			if (document.getElementById('explore_nodes').checked) {
+
+				await popNodeAndExplore();
+
+			}
+
+		}, update_interval);
+
+		window.addEventListener("load", (event) => {
+			fetch(`/webgraph-api/summary/${topic}/${graph_name}`)
+				.then(response => response.json()).then(summary => {
+					document.getElementById('graph_name').innerText = summary.graph_name;
+					document.getElementById('graph_V').innerText = summary.num_nodes;
+					document.getElementById('graph_E').innerText = summary.num_arcs;
+
+					let epsilon = 0.1;
+					let k = Math.ceil(Math.log10(summary.num_nodes) / (2.0 * epsilon * epsilon));
+					document.getElementById('graph_avgdist_sample_size').value = k;
+					document.getElementById('graph_hc_sample_size').value = k;
 				});
-			});
-
-			function fetchEdges(each) {
-
-				let payload = {
-					method: "POST",
-					body: JSON.stringify([each]),
-				};
-
-				return fetch(`/webgraph-api/neighborhood/${topic}/${graph_name}`, payload)
-					.then(response => response.json())
-					.then(array => {
-
-						let newEdges = [];
-
-						array.forEach(data => {
-
-							if (document.getElementById('explore_incoming').checked) {
-								data.inborhood.forEach(triple => {
-									let e = {
-										parent: each,
-										from: triple[0],
-										from_outdegree: triple[1],
-										from_indegree: triple[2],
-										to: data.vertex,
-										to_outdegree: data.outborhood.length,
-										to_indegree: data.inborhood.length,
-									};
-
-									e.id = `${e.from}-${e.to}`;
-
-									queue.push(e.from);
-
-									edges_queue.push(e);
-
-									newEdges.push(e);
-								});
-							}
-
-							if (document.getElementById('explore_outgoing').checked) {
-								data.outborhood.forEach(triple => {
-									let e = {
-										parent: each,
-										from: data.vertex,
-										from_outdegree: data.outborhood.length,
-										from_indegree: data.inborhood.length,
-										to: triple[0],
-										to_outdegree: triple[1],
-										to_indegree: triple[2]
-									};
-
-									e.id = `${e.from}-${e.to}`;
-
-									queue.push(e.to);
-
-									edges_queue.push(e);
-
-									newEdges.push(e);
-								});
-							}
+		});
 
 
-						});
-
-						if (newEdges.length > 0) {
-							document.getElementById('queue_length').innerText = queue.length;
-							document.getElementById('edges_queue_length').innerText = edges_queue.length;
-						}
-
-						return newEdges;
-					});
-			}
-
-			// let sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-			function popEdgeAndVizualize() {
-				if (edges_queue.length > 0) {
-
-					let e = edges_queue.pop();
-
-					if (!edges.get(e.id)) {
-
-						if (!nodes.get(e.from)) {
-							addNode(e.from, e.from_outdegree, e.from_indegree, e.parent);
-						}
-
-						if (!nodes.get(e.to)) {
-							addNode(e.to, e.to_outdegree, e.to_indegree, e.from);
-						}
-
-						// if (e.to_outdegree === 0) {
-						// 	seen.add(e.to);
-						// 	updates.push({ id: e.to, color: { background: 'lightgray' } });
-						// }
-
-						nodes.update([{ id: e.parent, color: { background: 'lightgray' } }]);
-
-						edges.add(e);
-
-						document.getElementById('queue_V').innerText = nodes.length;
-						document.getElementById('queue_E').innerText = edges.length;
-
-					}
-
-					document.getElementById('edges_queue_length').innerText = edges_queue.length;
-				}
-			}
-
-			function avgdist() {
-
-				document.getElementById('graph_avgdist').innerText = '(...)';
-				document.getElementById('graph_diameter').innerText = '(...)';
-				document.getElementById('graph_avgdist_button').disabled = true;
-				document.getElementById('graph_avgdist_button').innerText = 'Calculating...';
-
-
-				let body = {
-					num_threads: parseInt(document.getElementById('graph_avgdist_num_threads').value),
-					sample_size: parseInt(document.getElementById('graph_avgdist_sample_size').value),
-					exact: !document.getElementById('graph_avgdist_estimated').checked
-				};
-
-				let payload = {
-					method: "POST",
-					body: JSON.stringify(body),
-				};
-
-				fetch(`/webgraph-api/avgdist/${topic}/${graph_name}`, payload)
-					.then(response => response.json())
-					.then(data => {
-						document.getElementById('graph_avgdist').innerText = data.distance.toFixed(3);
-						document.getElementById('graph_diameter').innerText = data.diameter;
-					})
-					.finally(() => {
-						document.getElementById('graph_avgdist_button').disabled = false;
-						document.getElementById('graph_avgdist_button').innerText = 'Calculate';
-					});
-			}
-
-			setInterval(() => {
-				if (document.getElementById('explore_edges').checked) {
-
-					popEdgeAndVizualize();
-
-				}
-			}, update_interval);
-
-			async function popNodeAndExplore() {
-				if (queue.length > 0) {
-
-					let each = undefined;
-
-					if (document.getElementById('radio_bfs').checked) {
-						each = queue.shift();
-					} else {
-						each = queue.pop();
-					}
-
-					if (!seen.has(each)) {
-
-						seen.add(each);
-
-						let edges_of_each = await fetchEdges(each);
-					}
-				}
-			}
-
-			setInterval(async () => {
-
-				if (document.getElementById('explore_nodes').checked) {
-
-					await popNodeAndExplore();
-
-				}
-
-			}, update_interval);
-
-			window.addEventListener("load", (event) => {
-				fetch(`/webgraph-api/summary/${topic}/${graph_name}`)
-					.then(response => response.json()).then(summary => {
-						document.getElementById('graph_name').innerText = summary.graph_name;
-						document.getElementById('graph_V').innerText = summary.num_nodes;
-						document.getElementById('graph_E').innerText = summary.num_arcs;
-
-						let epsilon = 0.1;
-						document.getElementById('graph_avgdist_sample_size').value = Math.ceil(Math.log10(summary.num_nodes) / (2.0 * epsilon * epsilon));
-					});
-			});
-
-
-		</script>
+	</script>
 </body>
 
 </html>
