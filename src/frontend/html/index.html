@@ -5,6 +5,7 @@
 	<title>Webgraph interface</title>
 	<script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 	<script type="text/javascript" src="https://d3js.org/d3.v7.min.js"></script>
+	<script type="text/javascript" src="viz-standalone.js"></script>
 	<link href="data:image/x-icon;base64,YourBase64StringHere" rel="icon" type="image/x-icon" />
 	<link rel="stylesheet" href="https://www.w3schools.com/w3css/5/w3.css">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -179,6 +180,7 @@
 			}
 		}
 
+
 		let topic = '';//'erdos-renyi';
 		let graph_name = '';//'2k-0001p';
 
@@ -187,9 +189,17 @@
 
 		// let queue = [759389];
 		// let queue = [37028167];
-		let queue = [];
-		let edges_queue = []; // This will hold edges to be added	
+		const queue = [];
+		const edges_queue = []; // This will hold edges to be added	
 		const seen = new Set();
+		const viz_graph = {
+			graphAttributes: {
+				rankdir: "LR"
+			},
+			directed: true,
+			edges: [],//[{ tail: "c", head: "a" }]
+		};
+		const graphviz = {}; // Object to hold the Viz.js instance
 
 		const update_interval = 1.0 / 1.618; // ms
 		const nodes = new vis.DataSet([]);
@@ -226,14 +236,15 @@
 			},
 			edges: {
 				smooth: {
-					"type": "dynamic",
+					"type": "directed",
 					"forceDirection": "none"
 				},
 				arrows: { to: true }
 			},
-			physics: {
-				"minVelocity": 0.75 * 1.618,
-			}
+			// physics: {
+			// 	"minVelocity": 0.75 * 1.618,
+			// }
+			physics: false
 		};
 
 		const network = new vis.Network(container, data, options);
@@ -368,6 +379,7 @@
 					nodes.update([{ id: e.parent, color: { background: 'lightgray' } }]);
 
 					edges.add(e);
+					viz_graph.edges.push({ tail: e.from, head: e.to });
 
 					document.getElementById('queue_V').innerText = nodes.length;
 					document.getElementById('queue_E').innerText = edges.length;
@@ -532,12 +544,63 @@
 						id => queue.push(id));
 
 				});
-
-
-
 		}
 
+		window.addEventListener('load', () => {
+
+			Viz.instance().then(instance => {
+
+				graphviz.instance = instance;// Load Viz.js instance
+
+			});
+
+		});
+
+		async function update_positions() {
+
+
+			// var svg = graphviz.instance.renderSVGElement(viz_graph);
+			// document.getElementById("graph").appendChild(svg);
+
+			var json_graph = graphviz.instance.renderJSON(viz_graph, { engine: 'sfdp', yInvert: true });
+
+			// var updates = json_graph.objects.map(obj => {
+			// 	let [x, y] = obj.pos.split(',');
+			// 	return {
+			// 		id: parseInt(obj.name),
+			// 		x: parseFloat(x),
+			// 		y: parseFloat(y),
+			// 	}
+			// });
+
+			// nodes.update(updates);
+
+			return json_graph;
+		}
+
+		// setInterval(() => {
+
+		// 	update_positions();
+
+		// }, 618);
+
 	</script>
+
+	<button class="w3-btn w3-round w3-border w3-margin-top" onclick="
+	update_positions().then(json_graph => {var updates = json_graph.objects.map(obj => {
+				let [x, y] = obj.pos.split(',');
+				return {
+					id: parseInt(obj.name),
+					x: parseFloat(x),
+					y: parseFloat(y),
+				}
+			});
+
+			nodes.update(updates);});">
+		Render Graph
+	</button>
+	<br>
+	<div id="graph"></div>
 
 	<hr>
 
