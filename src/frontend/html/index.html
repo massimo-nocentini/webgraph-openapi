@@ -141,13 +141,27 @@
 		<p>
 			<b>Layout</b>
 
-			<input class="w3-check w3-margin-left" id="radio_layout_hierarchical" type="checkbox"
-				name="layout_algorithm" value="hierarchical" onclick="toggleLayout()">
-			<label>Hierarchical</label>
-
 			<input id="enable_physics" class="w3-check w3-margin-left" type="checkbox" checked="checked"
-				onclick="togglePhysics()">
-			<label>Physics stabilization</label>
+				onclick="network.setOptions({ physics: { enabled: this.checked } });">
+			<label for="enable_physics">Physics stabilization</label>
+
+			<select id="graphviz_engine" class="w3-border w3-round w3-margin-left">
+				<option value="dot" selected>Dot</option>
+				<option value="neato">Neato</option>
+				<option value="fdp">Fdp</option>
+				<option value="sfdp">Sfdp</option>
+				<option value="twopi">Twopi</option>
+				<option value="circo">Circo</option>
+				<option value="nop">Nop</option>
+				<option value="nop2">Nop2</option>
+				<option value="osage">Osage</option>
+				<option value="patchwork">Patchwork</option>
+			</select>
+
+			<button class="w3-btn w3-round w3-border w3-margin-left"
+				onclick="worker.postMessage({graph: viz_graph, engine: document.getElementById('graphviz_engine').value});">
+				Layout it
+			</button>
 		</p>
 
 	</article>
@@ -229,7 +243,6 @@
 
 		// Create a network
 		const container = document.getElementById('network');
-		const data = { nodes, edges };
 		const options = {
 			nodes: {
 				shape: "box",
@@ -245,38 +258,9 @@
 			// physics: {
 			// 	"minVelocity": 0.75 * 1.618,
 			// }
-			physics: false
 		};
 
-		const network = new vis.Network(container, data, options);
-
-		function toggleLayout() {
-			let enable = document.getElementById('radio_layout_hierarchical').checked;
-			network.setOptions({
-				layout: {
-					hierarchical: {
-						enabled: enable,
-						levelSeparation: 150,
-						nodeSpacing: 100,
-						treeSpacing: 200,
-						blockShifting: true,
-						edgeMinimization: true,
-						parentCentralization: true,
-						direction: 'LR', // UD, DU, LR, RL
-						sortMethod: 'directed',
-						shakeTowards: 'roots',
-					},
-					randomSeed: 42 // For reproducibility					
-				}
-			});
-		}
-
-		function togglePhysics() {
-			network.setOptions({ physics: { enabled: document.getElementById('enable_physics').checked } });
-		}
-
-		togglePhysics();
-		toggleLayout();
+		const network = new vis.Network(container, { nodes, edges }, options);
 
 		network.on("doubleClick", function (params) {
 			params.nodes.forEach(async each => {
@@ -481,7 +465,7 @@
 				});
 		}
 
-		async function popNodeAndExplore() {
+		function popNodeAndExplore() {
 			if (queue.length > 0) {
 
 				let each = undefined;
@@ -496,15 +480,15 @@
 
 					seen.add(each);
 
-					let edges_of_each = await fetchEdges(each);
+					fetchEdges(each);
 				}
 			}
 		}
 
-		setInterval(async () => {
+		setInterval(() => {
 
 			if (document.getElementById('explore_nodes').checked) {
-				await popNodeAndExplore();
+				popNodeAndExplore();
 			}
 
 			if (document.getElementById('explore_edges').checked) {
@@ -513,12 +497,11 @@
 
 		}, update_interval);
 
-
-		async function load_graph() {
+		function load_graph() {
 			topic = document.getElementById('graph_input_topic').value;
 			graph_name = document.getElementById('graph_input_name').value;
 
-			await fetch(`/webgraph-api/summary/${topic}/${graph_name}`)
+			return fetch(`/webgraph-api/summary/${topic}/${graph_name}`)
 				.then(response => response.json()).then(summary => {
 					document.getElementById('graph_V').innerText = summary.num_nodes;
 					document.getElementById('graph_E').innerText = summary.num_arcs;
@@ -537,7 +520,6 @@
 
 					JSON.parse('[' + document.getElementById('graph_input_initial_vertices').value + ']').forEach(
 						id => queue.push(id));
-
 				});
 		}
 
@@ -558,26 +540,10 @@
 
 	</script>
 
-	<select id="graphviz_engine" class="w3-select w3-border w3-round w3-margin-top"
-		onchange="worker.postMessage({graph: viz_graph, engine: this.value});">
-		<option value="dot" selected>Dot</option>
-		<option value="neato">Neato</option>
-		<option value="fdp">Fdp</option>
-		<option value="sfdp">Sfdp</option>
-		<option value="twopi">Twopi</option>
-		<option value="circo">Circo</option>
-		<option value="nop">Nop</option>
-		<option value="nop2">Nop2</option>
-		<option value="osage">Osage</option>
-		<option value="patchwork">Patchwork</option>
-	</select>
 
-	<button class="w3-btn w3-round w3-border w3-margin-top"
-		onclick="worker.postMessage({graph: viz_graph, engine: document.getElementById('graphviz_engine').value});">
-		Render Graph
-	</button>
+	<!-- for showing a graphviz graph.
 	<br>
-	<div id="graph"></div>
+	<div id="graph"></div> -->
 
 	<hr>
 
@@ -594,6 +560,8 @@
 			<img alt="Creative Commons License" style="border-width:0"
 				src="https://mirrors.creativecommons.org/presskit/icons/sa.svg" />
 		</a>
+		<br />
+		<i>University of Florence, DiSIA.</i>
 		<br />
 		This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative
 			Commons Attribution-ShareAlike 4.0
