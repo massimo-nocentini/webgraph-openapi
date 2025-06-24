@@ -204,6 +204,7 @@
 		const update_interval = 1.0 / 1.618; // ms
 		const nodes = new vis.DataSet([]);
 		const edges = new vis.DataSet([]);
+		const worker = new Worker('graphviz-worker.js');
 
 		function addNode(id, outdegree = 0, indegree = 0, nearby_vertex = undefined) {
 
@@ -236,7 +237,7 @@
 			},
 			edges: {
 				smooth: {
-					"type": "directed",
+					"type": "continuous",
 					"forceDirection": "none"
 				},
 				arrows: { to: true }
@@ -480,14 +481,6 @@
 				});
 		}
 
-		setInterval(() => {
-			if (document.getElementById('explore_edges').checked) {
-
-				popEdgeAndVizualize();
-
-			}
-		}, update_interval);
-
 		async function popNodeAndExplore() {
 			if (queue.length > 0) {
 
@@ -511,9 +504,11 @@
 		setInterval(async () => {
 
 			if (document.getElementById('explore_nodes').checked) {
-
 				await popNodeAndExplore();
+			}
 
+			if (document.getElementById('explore_edges').checked) {
+				popEdgeAndVizualize();
 			}
 
 		}, update_interval);
@@ -546,48 +541,10 @@
 				});
 		}
 
-		window.addEventListener('load', () => {
+		worker.onmessage = function (e) {
+			let json_graph = e.data;
 
-			Viz.instance().then(instance => {
-
-				graphviz.instance = instance;// Load Viz.js instance
-
-			});
-
-		});
-
-		async function update_positions() {
-
-
-			// var svg = graphviz.instance.renderSVGElement(viz_graph);
-			// document.getElementById("graph").appendChild(svg);
-
-			var json_graph = graphviz.instance.renderJSON(viz_graph, { engine: 'sfdp', yInvert: true });
-
-			// var updates = json_graph.objects.map(obj => {
-			// 	let [x, y] = obj.pos.split(',');
-			// 	return {
-			// 		id: parseInt(obj.name),
-			// 		x: parseFloat(x),
-			// 		y: parseFloat(y),
-			// 	}
-			// });
-
-			// nodes.update(updates);
-
-			return json_graph;
-		}
-
-		// setInterval(() => {
-
-		// 	update_positions();
-
-		// }, 618);
-
-	</script>
-
-	<button class="w3-btn w3-round w3-border w3-margin-top" onclick="
-	update_positions().then(json_graph => {var updates = json_graph.objects.map(obj => {
+			var updates = json_graph.objects.map(obj => {
 				let [x, y] = obj.pos.split(',');
 				return {
 					id: parseInt(obj.name),
@@ -596,7 +553,27 @@
 				}
 			});
 
-			nodes.update(updates);});">
+			nodes.update(updates);
+		};
+
+	</script>
+
+	<select id="graphviz_engine" class="w3-select w3-border w3-round w3-margin-top"
+		onchange="worker.postMessage({graph: viz_graph, engine: this.value});">
+		<option value="dot" selected>Dot</option>
+		<option value="neato">Neato</option>
+		<option value="fdp">Fdp</option>
+		<option value="sfdp">Sfdp</option>
+		<option value="twopi">Twopi</option>
+		<option value="circo">Circo</option>
+		<option value="nop">Nop</option>
+		<option value="nop2">Nop2</option>
+		<option value="osage">Osage</option>
+		<option value="patchwork">Patchwork</option>
+	</select>
+
+	<button class="w3-btn w3-round w3-border w3-margin-top"
+		onclick="worker.postMessage({graph: viz_graph, engine: document.getElementById('graphviz_engine').value});">
 		Render Graph
 	</button>
 	<br>
