@@ -158,8 +158,8 @@
 				<option value="patchwork">Patchwork</option>
 			</select>
 
-			<button class="w3-btn w3-round w3-border w3-margin-left"
-				onclick="worker.postMessage({graph: viz_graph, engine: document.getElementById('graphviz_engine').value});">
+			<button class="w3-btn w3-round w3-border w3-margin-left" id="graphviz_layout_button"
+				onclick="worker.postMessage({graph: viz_graph, engine: document.getElementById('graphviz_engine').value}); this.disabled = true; this.innerText = 'Layouting...';">
 				Layout it
 			</button>
 		</p>
@@ -232,8 +232,8 @@
 
 			if (nearby_vertex !== undefined && nodes.get(nearby_vertex)) {
 				let { x, y } = network.getPosition(nearby_vertex);
-				n.x = x + (Math.random() * 16.18); // Randomize position a bit
-				n.y = y + (Math.random() * 16.18); // Randomize position a bit
+				n.x = x + (Math.random() * 16.18 * (Math.random() < Math.random() ? 1.0 : -1.0)); // Randomize position a bit
+				n.y = y + (Math.random() * 16.18 * (Math.random() < Math.random() ? 1.0 : -1.0)); // Randomize position a bit
 			}
 
 			let nn = nodes.add(n);
@@ -518,8 +518,8 @@
 					queue.length = 0;
 					edges_queue.length = 0;
 
-					JSON.parse('[' + document.getElementById('graph_input_initial_vertices').value + ']').forEach(
-						id => queue.push(id));
+					let initial_nodes = JSON.parse('[' + document.getElementById('graph_input_initial_vertices').value + ']');
+					initial_nodes.forEach(id => queue.push(id));
 				});
 		}
 
@@ -536,6 +536,9 @@
 			});
 
 			nodes.update(updates);
+
+			document.getElementById('graphviz_layout_button').disabled = false;
+			document.getElementById('graphviz_layout_button').innerText = 'Layout it';
 		};
 
 	</script>
