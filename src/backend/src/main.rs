@@ -7,6 +7,7 @@ use std::{
 };
 
 use avgdist_rs::{avgdist_sample, hc_sample};
+use rand::{self, Rng, seq::IndexedRandom};
 use rocket::serde::{Deserialize, Serialize, json::Json};
 use webgraph::{
     prelude::BvGraph,
@@ -199,6 +200,82 @@ fn neighborhood(
     )
 }
 
+#[derive(Serialize)]
+#[serde(crate = "rocket::serde")]
+struct NeighborhoodEgoNet {
+    nodes: Vec<NeighborhoodEgoVertex>,
+    links: Vec<NeighborhoodEgoEdge>,
+}
+
+#[derive(Serialize)]
+#[serde(crate = "rocket::serde")]
+struct NeighborhoodEgoVertex {
+    id: String,
+    indegree: usize,
+    outdegree: usize,
+    address: String,
+    type_name: String,
+    creation_timestamp: String,
+}
+
+#[derive(Serialize)]
+#[serde(crate = "rocket::serde")]
+struct NeighborhoodEgoEdge {
+    source_id: String,
+    target_id: String,
+    amount: f64,
+    type_name: String,
+    timestamp: String,
+}
+
+#[get("/egonet/<vertex_id>")]
+fn egonet_get(vertex_id: usize) -> Json<NeighborhoodEgoNet> {
+    let topic = "pg";
+    let graph_name = "pg";
+
+    let path = format!("/usr/webgraphs/{}/{}", topic, graph_name);
+    let graph = BvGraph::with_basename(&path).load().unwrap();
+
+    let path_t = format!("/usr/webgraphs/{}/{}-t", topic, graph_name);
+    let graph_t = BvGraph::with_basename(&path_t).load().unwrap();
+
+    let node_types = vec![String::from("EOA"), String::from("SC")];
+    let edge_types = vec![
+        String::from("deploy"),
+        String::from("transfer"),
+        String::from("payment"),
+    ];
+    let mut rng = rand::rng();
+
+    let ts_ms = time_format::now_ms().unwrap();
+
+    let r = NeighborhoodEgoNet {
+        nodes: graph
+            .successors(vertex_id)
+            .map(|each| NeighborhoodEgoVertex {
+                id: each.to_string(),
+                indegree: graph_t.successors(each).len(),
+                outdegree: graph.successors(each).len(),
+                address: format!("{:#x}", each),
+                type_name: node_types.choose(&mut rng).unwrap().clone(),
+                creation_timestamp: time_format::format_iso8601_ms_utc(ts_ms).unwrap(),
+            })
+            .collect(),
+        links: graph
+            .successors(vertex_id)
+            .map(|each| NeighborhoodEgoEdge {
+                source_id: vertex_id.to_string(),
+                target_id: each.to_string(),
+                amount: rng.random(),
+                type_name: edge_types.choose(&mut rng).unwrap().clone(),
+                timestamp: time_format::format_iso8601_ms_utc(ts_ms).unwrap(),
+            })
+            .collect(),
+    };
+
+    Json(r)
+}
+
 #[get("/")]
 fn echo() -> &'static str {
     "Usage: 
@@ -217,7 +294,8 @@ fn rocket() -> _ {
             neighborhood_get,
             neighborhood,
             summary,
-            echo
+            echo,
+            egonet_get
         ],
     )
 }
