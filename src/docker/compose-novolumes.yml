@@ -1,0 +1,23 @@
+services:
+  webgraph-openapi-backend:
+    build:
+      context: ../backend
+      dockerfile: docker/Dockerfile
+    restart: always
+    container_name: webgraph-openapi-backend
+    environment:
+      - ROCKET_ADDRESS="0.0.0.0"  # Listen on all interfaces
+      - ROCKET_PORT=8000
+    ports:
+      - 8801:8000
+
+  webgraph-openapi-frontend:
+    build:
+      context: ../frontend
+      dockerfile: docker/Dockerfile
+    restart: always
+    container_name: webgraph-openapi-frontend
+    depends_on:
+      - webgraph-openapi-backend
+    ports:
+      - 8800:80
