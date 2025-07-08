@@ -1,13 +1,12 @@
 
-FROM rust:1.87-alpine
+FROM rust:alpine
 
 RUN apk add --no-cache musl-dev
 
 COPY ./src /usr/src/backend/src
+COPY ./Cargo* /usr/src/backend
 
 COPY ./data/erdos-renyi /usr/webgraphs/egonet-erdos-renyi
-
-COPY ./Cargo* /usr/src/backend
 
 WORKDIR /usr/src/backend
 
