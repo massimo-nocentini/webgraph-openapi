@@ -164,6 +164,25 @@
 			</button>
 		</p>
 
+
+		<p>
+			<b>Simpath</b>
+
+			<label class="w3-margin-left" for="simpath_source">Source</label>
+			<input id="simpath_source" class="w3-border w3-round w3-margin-left">
+
+			<label class="w3-margin-left" for="simpath_target">Target</label>
+			<input id="simpath_target" class="w3-border w3-round w3-margin-left">
+
+			<label class="w3-margin-left" for="simpath_count">Count</label>
+			<input id="simpath_count" class="w3-border w3-round w3-margin-left" disabled>
+
+			<button class="w3-btn w3-round w3-border w3-margin-left" id="simpath_run_button"
+				onclick="this.disabled = true; this.innerText = 'Counting...'; simpath();">
+				Count them
+			</button>
+		</p>
+
 	</article>
 
 	<h2>Viz</h2>
@@ -540,6 +559,33 @@
 			document.getElementById('graphviz_layout_button').disabled = false;
 			document.getElementById('graphviz_layout_button').innerText = 'Layout it';
 		};
+
+		function simpath() {
+
+			let body = {
+				source: parseInt(document.getElementById('simpath_source').value),
+				target: parseInt(document.getElementById('simpath_target').value),
+				vertices: nodes.map(node => node.id),
+			};
+
+			let payload = {
+				method: "POST",
+				body: JSON.stringify(body),
+			};
+
+			return fetch(`/webgraph-api/simpath/${topic}/${graph_name}`, payload)
+				.then(response => response.json())
+				.then(array => {
+
+					document.getElementById('simpath_count').value = array.length;
+
+					let result = array.map(path => path.join(' -> ')).join('\n');
+					alert(`Found ${array.length} paths:\n${result}`);
+
+					document.getElementById('simpath_run_button').disabled = false;
+					document.getElementById('simpath_run_button').innerText = 'Count them';
+				});
+		}
 
 	</script>
 

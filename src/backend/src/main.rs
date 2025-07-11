@@ -2,11 +2,12 @@
 extern crate rocket;
 
 use std::{
+    collections::HashSet,
     sync::Arc,
     time::{Duration, Instant},
 };
 
-use avgdist_rs::{avgdist_sample, hc_sample};
+use avgdist_rs::{Simpath, avgdist_sample, hc_sample};
 use rand::{self, Rng, seq::IndexedRandom};
 use rocket::serde::{Deserialize, Serialize, json::Json};
 use webgraph::{
@@ -200,6 +201,30 @@ fn neighborhood(
     )
 }
 
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
+struct SimpathRequest {
+    source: usize,
+    target: usize,
+    vertices: Option<HashSet<usize>>,
+}
+
+#[post("/simpath/<topic>/<graph_name>", data = "<request>")]
+fn simpath(topic: &str, graph_name: &str, request: Json<SimpathRequest>) -> Json<Vec<Vec<usize>>> {
+    let path = format!("/usr/webgraphs/{}/{}", topic, graph_name);
+    let graph = BvGraph::with_basename(&path).load().unwrap();
+
+    let mut simpath = Simpath::from_webgraph(&graph);
+
+    simpath.init_num_arcto_repr(&graph, request.source, request.target, &request.vertices);
+
+    let (zdd, varsize) = simpath.to_zdd(request.target);
+
+    let paths = simpath.zdd_all_sols(&zdd, varsize);
+
+    Json(paths)
+}
+
 #[derive(Serialize)]
 #[serde(crate = "rocket::serde")]
 struct NeighborhoodEgoNet {
@@ -295,7 +320,8 @@ fn rocket() -> _ {
             neighborhood,
             summary,
             echo,
-            egonet_get
+            egonet_get,
+            simpath
         ],
     )
 }
