@@ -172,7 +172,7 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 [[package]]
 name = "avgdist-rs"
 version = "0.1.0"
-source = "git+https://github.com/massimo-nocentini/avgdist-rs.git#0616224ca33706040d2e597a1f84bf3aa27fb1b7"
+source = "git+https://github.com/massimo-nocentini/avgdist-rs.git?branch=mem#beef2a56d41238d3c9b7972049d02f952994c441"
 dependencies = [
  "bitvec",
  "dsi-progress-logger 0.2.5",
@@ -441,9 +441,9 @@ dependencies = [
 
 [[package]]
 name = "crc32fast"
-version = "1.4.2"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a97769d94ddab943e4510d138150169a2758b5ef3eb191a9ee688de3e23ef7b3"
+checksum = "9481c1c90cbf2ac953f07c8d4a58aa3945c425b7185c9154d67a65e4230da511"
 dependencies = [
  "cfg-if",
 ]

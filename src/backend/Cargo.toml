@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 webgraph = { git = "https://github.com/vigna/webgraph-rs" }
-avgdist-rs = { git = "https://github.com/massimo-nocentini/avgdist-rs.git" }
+avgdist-rs = { git = "https://github.com/massimo-nocentini/avgdist-rs.git", branch = "mem" }
 rayon = "1.10.0"
 rand = "0.9.1"
 time-format = "1.2.1"

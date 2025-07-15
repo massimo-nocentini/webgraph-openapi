@@ -9,11 +9,17 @@ use std::{
 
 use avgdist_rs::{Simpath, avgdist_sample, hc_sample};
 use rand::{self, Rng, seq::IndexedRandom};
-use rocket::serde::{Deserialize, Serialize, json::Json};
+use rocket::{
+    fairing::{Fairing, Info, Kind},
+    serde::{Deserialize, Serialize, json::Json},
+};
 use webgraph::{
     prelude::BvGraph,
     traits::{RandomAccessGraph, RandomAccessLabeling, SequentialLabeling},
 };
+
+use rocket::http::Header;
+use rocket::{Request, Response};
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
@@ -206,7 +212,7 @@ fn neighborhood(
 struct SimpathRequest {
     source: usize,
     target: usize,
-    vertices: Option<HashSet<usize>>,
+    vertices: HashSet<usize>,
 }
 
 #[post("/simpath/<topic>/<graph_name>", data = "<request>")]
@@ -309,9 +315,31 @@ fn echo() -> &'static str {
             Returns the neighborhood of a vertex in the specified graph under the given topic."
 }
 
+pub struct CORS;
+
+#[rocket::async_trait]
+impl Fairing for CORS {
+    fn info(&self) -> Info {
+        Info {
+            name: "Attaching CORS headers to responses",
+            kind: Kind::Response,
+        }
+    }
+
+    async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
+        response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
+        response.set_header(Header::new(
+            "Access-Control-Allow-Methods",
+            "POST, GET, PATCH, OPTIONS",
+        ));
+        response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
+        response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
+    }
+}
+
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount(
+    rocket::build().attach(CORS).mount(
         "/webgraph-api",
         routes![
             harmonic_centrality,
