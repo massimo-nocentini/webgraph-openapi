@@ -172,7 +172,7 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 [[package]]
 name = "avgdist-rs"
 version = "0.1.0"
-source = "git+https://github.com/massimo-nocentini/avgdist-rs.git?branch=mem#beef2a56d41238d3c9b7972049d02f952994c441"
+source = "git+https://github.com/massimo-nocentini/avgdist-rs.git?branch=middle-mem#2d687d43fda8c4fd87c35b3fb0fc18c9e06628f5"
 dependencies = [
  "bitvec",
  "dsi-progress-logger 0.2.5",
@@ -2166,15 +2166,15 @@ checksum = "989e6739f80c4ad5b13e0fd7fe89531180375b18520cc8c82080e4dc4035b84f"
 
 [[package]]
 name = "rustix"
-version = "1.0.7"
+version = "1.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c71e83d6afe7ff64890ec6b71d6a69bb8a610ab78ce364b3352876bb4c801266"
+checksum = "11181fbabf243db407ef8df94a6ce0b2f9a733bd8be4ad02b4eda9602296cac8"
 dependencies = [
  "bitflags 2.9.1",
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.59.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]

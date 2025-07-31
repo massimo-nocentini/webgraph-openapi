@@ -8,7 +8,8 @@ services:
     environment:
       - ROCKET_ADDRESS="0.0.0.0"  # Listen on all interfaces
       - ROCKET_PORT=8000
-      - BASE_MEMSIZE=30
+      - BASE_MEMSIZE=25
+      - RUST_BACKTRACE=1
     ports:
       - 8801:8000
     volumes:
