@@ -261,8 +261,8 @@ struct NeighborhoodEgoEdge {
 
 #[get("/egonet/<vertex_id>")]
 fn egonet_get(vertex_id: usize) -> Json<NeighborhoodEgoNet> {
-    let topic = "egonet-erdos-renyi";
-    let graph_name = "1k-0001p";
+    let topic = "egonet-pg";
+    let graph_name = "pg";
 
     let path = format!("/usr/webgraphs/{}/{}", topic, graph_name);
     let graph = BvGraph::with_basename(&path).load().unwrap();
