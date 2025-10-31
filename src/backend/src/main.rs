@@ -235,7 +235,8 @@ fn simpath(topic: &str, graph_name: &str, request: Json<SimpathRequest>) -> Json
 #[serde(crate = "rocket::serde")]
 struct NeighborhoodEgoNet {
     nodes: Vec<NeighborhoodEgoVertex>,
-    links: Vec<NeighborhoodEgoEdge>,
+    outlinks: Vec<NeighborhoodEgoEdge>,
+    inlinks: Vec<NeighborhoodEgoEdge>,
 }
 
 #[derive(Serialize)]
@@ -280,23 +281,49 @@ fn egonet_get(vertex_id: usize) -> Json<NeighborhoodEgoNet> {
 
     let ts_ms = time_format::now_ms().unwrap();
 
+    let in_nodes: Vec<NeighborhoodEgoVertex> = graph_t
+        .successors(vertex_id)
+        .map(|each| NeighborhoodEgoVertex {
+            id: each.to_string(),
+            indegree: graph_t.successors(each).len(),
+            outdegree: graph.successors(each).len(),
+            address: format!("{:#x}", each),
+            type_name: node_types.choose(&mut rng).unwrap().clone(),
+            creation_timestamp: time_format::format_iso8601_ms_utc(ts_ms).unwrap(),
+        })
+        .collect();
+
+    let mut out_nodes: Vec<NeighborhoodEgoVertex> = graph
+        .successors(vertex_id)
+        .map(|each| NeighborhoodEgoVertex {
+            id: each.to_string(),
+            indegree: graph_t.successors(each).len(),
+            outdegree: graph.successors(each).len(),
+            address: format!("{:#x}", each),
+            type_name: node_types.choose(&mut rng).unwrap().clone(),
+            creation_timestamp: time_format::format_iso8601_ms_utc(ts_ms).unwrap(),
+        })
+        .collect();
+
+    out_nodes.extend(in_nodes);
+
     let r = NeighborhoodEgoNet {
-        nodes: graph
-            .successors(vertex_id)
-            .map(|each| NeighborhoodEgoVertex {
-                id: each.to_string(),
-                indegree: graph_t.successors(each).len(),
-                outdegree: graph.successors(each).len(),
-                address: format!("{:#x}", each),
-                type_name: node_types.choose(&mut rng).unwrap().clone(),
-                creation_timestamp: time_format::format_iso8601_ms_utc(ts_ms).unwrap(),
-            })
-            .collect(),
-        links: graph
+        nodes: out_nodes,
+        outlinks: graph
             .successors(vertex_id)
             .map(|each| NeighborhoodEgoEdge {
                 source_id: vertex_id.to_string(),
                 target_id: each.to_string(),
+                amount: rng.random(),
+                type_name: edge_types.choose(&mut rng).unwrap().clone(),
+                timestamp: time_format::format_iso8601_ms_utc(ts_ms).unwrap(),
+            })
+            .collect(),
+        inlinks: graph_t
+            .successors(vertex_id)
+            .map(|each| NeighborhoodEgoEdge {
+                source_id: each.to_string(),
+                target_id: vertex_id.to_string(),
                 amount: rng.random(),
                 type_name: edge_types.choose(&mut rng).unwrap().clone(),
                 timestamp: time_format::format_iso8601_ms_utc(ts_ms).unwrap(),
