@@ -2,12 +2,14 @@ services:
   webgraph-openapi-backend:
     build:
       context: ../backend
-      dockerfile: docker/Dockerfile
+      dockerfile: docker/Dockerfile.egonet
     restart: always
     container_name: webgraph-openapi-backend
     environment:
       - ROCKET_ADDRESS="0.0.0.0"  # Listen on all interfaces
       - ROCKET_PORT=8000
+      - BASE_MEMSIZE=25
+      - RUST_BACKTRACE=1
     ports:
       - 8801:8000
 
@@ -21,3 +23,20 @@ services:
       - webgraph-openapi-backend
     ports:
       - 8800:80
+    environment:
+      - TOPIC_NAME="pg"
+      - GRAPH_NAME="pg"
+
+  neo4j-bitcoin:
+    # image: neo4j:enterprise
+    image: neo4j:5.18.0-enterprise
+    restart: always
+    container_name: webgraph-openapi-neo4j-bitcoin
+    environment:
+      - NEO4J_AUTH=none
+      - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
+    ports:
+      - 7474:7474
+      - 7687:7687
+    volumes:
+      - ../../neo4j/paymentsgraph/data:/data

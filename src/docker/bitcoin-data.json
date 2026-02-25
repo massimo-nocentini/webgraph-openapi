@@ -1,0 +1,9 @@
+{
+  "statements": [
+    {
+      "statement": "MATCH p=()-[r:CONTRIBUTES]->() RETURN p LIMIT 2",
+      "parameters": {
+      }
+    }
+  ]
+}

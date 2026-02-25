@@ -14,15 +14,11 @@ services:
       - 8801:8000
     volumes:
       - /Users/mn/Developer/working-copies/uni/avgdist-rs/data/star:/usr/webgraphs/star      
-      - /Volumes/Data/bitcoin:/usr/webgraphs/bitcoin
-      - /home/mn/Developer/working-copies/personal/development-snapshots.sh/working-copies/rust/avgdist-rs/data/star:/usr/webgraphs/star
-      - /home/mn/Developer/working-copies/personal/development-snapshots.sh/working-copies/rust/avgdist-rs/data/labeled:/usr/webgraphs/labeled
-      - /home/mn/Developer/working-copies/personal/development-snapshots.sh/working-copies/rust/avgdist-rs/data/erdos-renyi:/usr/webgraphs/erdos-renyi
-      - /home/mn/Developer/bitcoin/ag:/usr/webgraphs/ag
-      - /home/mn/Developer/bitcoin/atg:/usr/webgraphs/atg
-      - /home/mn/Developer/bitcoin/pg:/usr/webgraphs/pg
-      - /home/mn/Developer/bitcoin/ug:/usr/webgraphs/ug
-      - /home/mn/Developer/bitcoin/tg:/usr/webgraphs/tg
+      - /Users/mn/Developer/bitcoin/ag:/usr/webgraphs/ag
+      - /Users/mn/Developer/bitcoin/atg:/usr/webgraphs/atg
+      - /Users/mn/Developer/bitcoin/pg:/usr/webgraphs/pg
+      - /Users/mn/Developer/bitcoin/ug:/usr/webgraphs/ug
+      - /Users/mn/Developer/bitcoin/tg:/usr/webgraphs/tg
 
   webgraph-openapi-frontend:
     build:
@@ -37,3 +33,17 @@ services:
     environment:
       - TOPIC_NAME="pg"
       - GRAPH_NAME="pg"
+
+  neo4j-bitcoin:
+    # image: neo4j:enterprise
+    image: neo4j:5.18.0-enterprise
+    restart: always
+    container_name: webgraph-openapi-neo4j-bitcoin
+    environment:
+      - NEO4J_AUTH=none
+      - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
+    ports:
+      - 7474:7474
+      - 7687:7687
+    volumes:
+      - ../../neo4j/paymentsgraph/data:/data

@@ -1,0 +1,5 @@
+{
+  "statement": "MATCH p=()-[:SENT]->() RETURN p LIMIT 2;",
+  "parameters": {
+  }
+}
